@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "src/app/api/billing/webhook/**": {
+      "maxDuration": 30
+    },
+    "src/app/api/videos/*/export": {
+      "maxDuration": 60
+    }
+  },
+  "regions": ["gru1"]
+}

@@ -1,0 +1,207 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum PlanType {
+  FREE
+  STARTER
+  PRO
+  UNLIMITED
+}
+
+enum VideoStatus {
+  UPLOADING
+  QUEUED
+  PROCESSING
+  TRANSCRIBING
+  CORRECTING
+  READY
+  ERROR
+  EXPORTED
+}
+
+enum PaymentType {
+  SUBSCRIPTION
+  AVULSO
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CARD
+  PIX
+  BOLETO
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name         String?
+  image        String?
+  emailVerified DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  videos        Video[]
+  subscription  Subscription?
+  payments      Payment[]
+  usage         MonthlyUsage[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+model Subscription {
+  id                   String    @id @default(cuid())
+  userId               String    @unique
+  plan                 PlanType  @default(FREE)
+  mpCustomerId         String?   @unique
+  mpSubscriptionId     String?   @unique
+  mpPreapprovalPlanId  String?
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean   @default(false)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("subscriptions")
+}
+
+model MonthlyUsage {
+  id           String   @id @default(cuid())
+  userId       String
+  year         Int
+  month        Int
+  videosCount  Int      @default(0)
+  secondsTotal Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, year, month])
+  @@map("monthly_usage")
+}
+
+model Video {
+  id            String      @id @default(cuid())
+  userId        String
+  title         String
+  originalUrl   String
+  processedUrl  String?
+  audioUrl      String?
+  thumbnailUrl  String?
+  duration      Int?
+  fileSize      Int?
+  mimeType      String?
+  status        VideoStatus @default(UPLOADING)
+  errorMessage  String?
+  jobId         String?
+  processedAt   DateTime?
+  subtitleStyle Json?
+  paymentType   PaymentType @default(SUBSCRIPTION)
+  paymentId     String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  user          User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transcription Transcription?
+  payment       Payment?       @relation(fields: [paymentId], references: [id])
+
+  @@map("videos")
+}
+
+model Transcription {
+  id            String   @id @default(cuid())
+  videoId       String   @unique
+  rawText       String   @db.Text
+  correctedText String?  @db.Text
+  segments      Json
+  language      String   @default("pt")
+  confidence    Float?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  video Video @relation(fields: [videoId], references: [id], onDelete: Cascade)
+
+  @@map("transcriptions")
+}
+
+model Payment {
+  id              String        @id @default(cuid())
+  userId          String
+  type            PaymentType
+  method          PaymentMethod
+  status          PaymentStatus @default(PENDING)
+  amount          Int
+  currency        String        @default("BRL")
+  description     String?
+  videoDuration   Int?
+  pricePerSecond  Int?
+  mpPaymentId     String?       @unique
+  mpStatus        String?
+  pixQrCode       String?       @db.Text
+  pixQrCodeText   String?       @db.Text
+  pixExpiration   DateTime?
+  checkoutUrl     String?
+  paidAt          DateTime?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  user   User    @relation(fields: [userId], references: [id])
+  videos Video[]
+
+  @@map("payments")
+}
