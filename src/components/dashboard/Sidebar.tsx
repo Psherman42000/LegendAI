@@ -1,5 +1,9 @@
+"use client";
+
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { UsageBar } from "./UsageBar";
 
 const links = [
@@ -11,6 +15,9 @@ const links = [
 ];
 
 export function Sidebar() {
+  const { data: session } = useSession();
+  const user = session?.user;
+
   return (
     <aside className="surface sticky top-0 flex h-screen w-full max-w-[280px] flex-col border-r border-white/5 p-6">
       <div>
@@ -31,9 +38,17 @@ export function Sidebar() {
       <div className="mt-auto space-y-5">
         <UsageBar />
         <div className="surface-soft rounded-xl p-4">
-          <div className="text-sm font-semibold">Dev User</div>
-          <p className="text-xs text-[var(--text-secondary)]">dev@legendaai.com</p>
+          <div className="text-sm font-semibold">{user?.name ?? "Usuário"}</div>
+          <p className="text-xs text-[var(--text-secondary)]">{user?.email ?? ""}</p>
           <Badge className="mt-3">Pro</Badge>
+          <Button
+            variant="outline"
+            size="sm"
+            className="mt-3 w-full"
+            onClick={() => signOut({ callbackUrl: "/" })}
+          >
+            Sair
+          </Button>
         </div>
       </div>
     </aside>
