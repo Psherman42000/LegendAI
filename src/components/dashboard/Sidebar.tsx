@@ -11,6 +11,7 @@ const links = [
   { href: "/videos", label: "Meus Vídeos" },
   { href: "/plans", label: "Planos" },
   { href: "/billing", label: "Assinatura" },
+  { href: "/payment", label: "Pagamento Avulso" },
   { href: "/settings", label: "Configurações" },
 ];
 
