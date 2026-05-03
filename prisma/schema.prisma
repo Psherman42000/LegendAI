@@ -149,8 +149,9 @@ model Video {
   duration      Int?
   fileSize      Int?
   mimeType      String?
-  status        VideoStatus @default(UPLOADING)
-  errorMessage  String?
+  status          VideoStatus @default(UPLOADING)
+  useAiCorrection Boolean     @default(false)
+  errorMessage    String?
   jobId         String?
   processedAt   DateTime?
   subtitleStyle Json?

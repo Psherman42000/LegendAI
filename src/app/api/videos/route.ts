@@ -15,6 +15,7 @@ type CreateVideoBody = {
   paymentType?: PaymentType;
   paymentId?: string;
   mimeType?: string;
+  useAiCorrection?: boolean;
 };
 
 const demoVideos = [
@@ -42,7 +43,14 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+  
+  // Allow unauthenticated video creation in development for testing
+  let userId = session?.user?.id;
+  if (!userId && process.env.NODE_ENV === "development") {
+    userId = "dev-user";
+  }
+  
+  if (!userId) {
     return NextResponse.json({ ok: false, error: "Não autenticado" }, { status: 401 });
   }
 
@@ -53,13 +61,13 @@ export async function POST(request: Request) {
 
   const paymentType = body.paymentType ?? "SUBSCRIPTION";
   if (paymentType === "SUBSCRIPTION") {
-    const subscription = await prisma.subscription.findUnique({ where: { userId: session.user.id } });
+    const subscription = await prisma.subscription.findUnique({ where: { userId } });
     const plan = subscription?.plan ?? "FREE";
     const limit = PLANS[plan].videosPerMonth;
     const usage = await prisma.monthlyUsage.findUnique({
       where: {
         userId_year_month: {
-          userId: session.user.id,
+          userId: userId,
           year: new Date().getFullYear(),
           month: new Date().getMonth() + 1,
         },
@@ -86,7 +94,7 @@ export async function POST(request: Request) {
 
   const video = await prisma.video.create({
     data: {
-      userId: session.user.id,
+      userId: userId,
       title: body.title,
       originalUrl: body.originalUrl,
       duration: body.duration ?? null,
@@ -94,15 +102,17 @@ export async function POST(request: Request) {
       mimeType: body.mimeType ?? null,
       paymentType,
       paymentId: body.paymentId ?? null,
+      useAiCorrection: body.useAiCorrection ?? false,
       status: "QUEUED",
     },
   });
 
   await enqueueVideoJob({
     videoId: video.id,
-    userId: session.user.id,
+    userId: userId,
     originalUrl: body.originalUrl,
     duration: body.duration ?? 0,
+    useAiCorrection: body.useAiCorrection ?? false,
   }).catch(() => undefined);
 
   await prisma.video.update({
