@@ -14,17 +14,21 @@ import { prisma } from "@/lib/db";
 import { sendVideoReadyEmail } from "@/lib/email";
 import { writeSrtFile } from "@/lib/subtitle-artifacts";
 import { transcribeWithWhisper } from "@/lib/whisper";
+import type { SubtitleStyleId } from "@/lib/subtitle-styles";
 
 interface VideoJob {
   videoId: string;
   userId: string;
   originalUrl: string;
   duration: number;
+  subtitleStyle?: SubtitleStyleId;
 }
 
-const connection = process.env.REDIS_URL
-  ? { connection: { url: process.env.REDIS_URL } }
-  : undefined;
+if (!process.env.REDIS_URL) {
+  throw new Error("REDIS_URL is required to start video worker");
+}
+
+const connection = { connection: { url: process.env.REDIS_URL } };
 
 async function updateVideoStatus(
   videoId: string,
@@ -37,7 +41,7 @@ async function updateVideoStatus(
       status,
       ...extra,
     },
-  }).catch(() => undefined);
+  });
 }
 
 async function saveTranscription(
@@ -65,7 +69,7 @@ async function saveTranscription(
 }
 
 async function processVideo(job: Job<VideoJob>): Promise<void> {
-  const { videoId, originalUrl } = job.data;
+  const { videoId, originalUrl, subtitleStyle } = job.data;
   let videoPath = "";
   let audioPath = "";
   let thumbnailPath = "";
@@ -105,7 +109,7 @@ async function processVideo(job: Job<VideoJob>): Promise<void> {
     // Burn subtitles into video
     await updateVideoStatus(videoId, "BURNING");
     outputPath = path.join(process.cwd(), "tmp", `${videoId}-subtitled.mp4`);
-    await applySubtitleStyle(videoPath, srtPath, "classic", outputPath);
+    await applySubtitleStyle(videoPath, srtPath, subtitleStyle ?? "classic", outputPath);
     await job.updateProgress(85);
 
     // Upload all outputs
@@ -158,7 +162,7 @@ async function processVideo(job: Job<VideoJob>): Promise<void> {
       .catch(() => undefined);
     throw error;
   } finally {
-    await cleanup([videoPath, audioPath, thumbnailPath, srtPath, outputPath]);
+    await cleanup([videoPath, audioPath, thumbnailPath, srtPath, outputPath].filter(Boolean));
   }
 }
 

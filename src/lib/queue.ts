@@ -9,10 +9,10 @@ export type VideoJobPayload = {
 
 let videoQueue: Queue<VideoJobPayload> | null = null;
 
-function getVideoQueue(): Queue<VideoJobPayload> | null {
+function getVideoQueue(): Queue<VideoJobPayload> {
   const redisUrl = process.env.REDIS_URL;
   if (!redisUrl) {
-    return null;
+    throw new Error("REDIS_URL is required to enqueue video jobs");
   }
 
   if (!videoQueue) {
@@ -26,9 +26,6 @@ function getVideoQueue(): Queue<VideoJobPayload> | null {
 
 export async function enqueueVideoJob(data: VideoJobPayload): Promise<void> {
   const queue = getVideoQueue();
-  if (!queue) {
-    return;
-  }
 
   await queue.add("process-video", data, {
     removeOnComplete: true,
