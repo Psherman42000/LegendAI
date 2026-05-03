@@ -49,6 +49,8 @@ async function saveTranscription(
   rawText: string,
   correctedText: string,
   segments: Prisma.InputJsonValue,
+  language: string,
+  confidence: number,
 ): Promise<void> {
   await prisma.transcription.upsert({
     where: { videoId },
@@ -57,13 +59,15 @@ async function saveTranscription(
       rawText,
       correctedText,
       segments,
-      language: "pt",
-      confidence: 0.92,
+      language,
+      confidence,
     },
     update: {
       rawText,
       correctedText,
       segments,
+      language,
+      confidence,
     },
   });
 }
@@ -99,6 +103,8 @@ async function processVideo(job: Job<VideoJob>): Promise<void> {
       rawTranscription.rawText,
       correctedSegments.map((segment) => segment.text).join(" "),
       correctedSegments,
+      rawTranscription.language,
+      rawTranscription.confidence,
     );
     await job.updateProgress(75);
 
@@ -162,8 +168,22 @@ async function processVideo(job: Job<VideoJob>): Promise<void> {
       .catch(() => undefined);
     throw error;
   } finally {
-    await cleanup([videoPath, audioPath, thumbnailPath, srtPath, outputPath].filter(Boolean));
+    try {
+      await cleanup([videoPath, audioPath, thumbnailPath, srtPath, outputPath].filter(Boolean));
+    } catch {
+      // Ignore cleanup errors to avoid masking job failures
+    }
   }
 }
 
-new Worker<VideoJob>("video-processing", processVideo, connection);
+const worker = new Worker<VideoJob>("video-processing", processVideo, connection);
+
+process.on("SIGTERM", async () => {
+  await worker.close();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  await worker.close();
+  process.exit(0);
+});

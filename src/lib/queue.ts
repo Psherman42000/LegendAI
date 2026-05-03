@@ -19,6 +19,14 @@ function getVideoQueue(): Queue<VideoJobPayload> {
     videoQueue = new Queue<VideoJobPayload>("video-processing", {
       connection: { url: redisUrl },
     });
+
+    process.on("SIGTERM", async () => {
+      if (videoQueue) await videoQueue.close();
+    });
+
+    process.on("SIGINT", async () => {
+      if (videoQueue) await videoQueue.close();
+    });
   }
 
   return videoQueue;
