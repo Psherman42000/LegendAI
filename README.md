@@ -38,3 +38,17 @@ npm run db:seed
 - O build foi validado localmente com `npm run build`.
 - O worker de vídeo foi desenhado para rodar fora da Vercel.
 - `src/app/api/README.md` documenta a API para consumo futuro pelo app mobile.
+
+## Auto Burn Pipeline (Production)
+
+Required services:
+- PostgreSQL
+- Redis
+- Worker process (`npm run worker:dev` for local, process manager in prod)
+- FFmpeg available in PATH or `FFMPEG_PATH`
+- Whisper provider (`WHISPER_API_URL` or `WHISPER_EXECUTABLE` or `OPENAI_API_KEY`)
+- Cloudflare R2 (`R2_*` vars)
+
+READY means both files exist:
+- `processedUrl` (burnt MP4)
+- `srtUrl` (subtitle file)
