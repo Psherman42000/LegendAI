@@ -1,6 +1,6 @@
 import { UploadZone } from "@/components/upload/UploadZone";
+import { UploadLimitBanner } from "@/components/upload/UploadLimitBanner";
 import { AvulsoCalculator } from "@/components/billing/AvulsoCalculator";
-import { PaymentMethodSelector } from "@/components/billing/PaymentMethodSelector";
 
 export default function UploadPage() {
   return (
@@ -11,7 +11,7 @@ export default function UploadPage() {
           Envie um arquivo ou cole uma URL. O processamento acontece no worker, fora da Vercel.
         </p>
       </header>
-      <PaymentMethodSelector />
+      <UploadLimitBanner />
       <UploadZone />
       <AvulsoCalculator durationSeconds={600} />
     </main>
