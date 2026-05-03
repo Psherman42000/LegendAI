@@ -6,7 +6,6 @@ interface UploadedVideo {
   id: string;
   url: string;
   title: string;
-  status: string;
 }
 
 export function useUpload() {
@@ -15,19 +14,20 @@ export function useUpload() {
   const [error, setError] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
 
-  async function uploadFile(file: File): Promise<void> {
+  async function uploadFile(file: File): Promise<{ id: string; url: string; title: string; duration: number } | null> {
     setIsUploading(true);
     setError(null);
     setProgress(10);
 
     try {
       // Create video record via API
+      const objectUrl = URL.createObjectURL(file);
       const response = await fetch("/api/videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: file.name,
-          originalUrl: URL.createObjectURL(file),
+          originalUrl: objectUrl,
           duration: 0, // Will be detected server-side
           fileSize: file.size,
           mimeType: file.type,
@@ -41,21 +41,24 @@ export function useUpload() {
       }
 
       const data = await response.json();
-      setUploadedVideo({
+      const result = {
         id: data.data.videoId,
-        url: URL.createObjectURL(file),
+        url: objectUrl,
         title: file.name,
-        status: data.data.status,
-      });
+        duration: 0,
+      };
+      setUploadedVideo({ id: result.id, url: result.url, title: result.title });
       setProgress(100);
+      return result;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha no upload");
+      return null;
     } finally {
       setIsUploading(false);
     }
   }
 
-  async function uploadUrl(url: string): Promise<void> {
+  async function uploadUrl(url: string): Promise<{ id: string; url: string; title: string; duration: number } | null> {
     setIsUploading(true);
     setError(null);
     setProgress(50);
@@ -78,15 +81,18 @@ export function useUpload() {
       }
 
       const data = await response.json();
-      setUploadedVideo({
+      const result = {
         id: data.data.videoId,
         url,
         title: "Vídeo remoto",
-        status: data.data.status,
-      });
+        duration: 0,
+      };
+      setUploadedVideo({ id: result.id, url: result.url, title: result.title });
       setProgress(100);
+      return result;
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Falha no upload");
+      return null;
     } finally {
       setIsUploading(false);
     }
