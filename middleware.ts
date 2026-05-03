@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  const ip = request.ip ?? request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? "unknown";
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "unknown";
   const rateLimitResponse = rateLimit(ip);
   if (rateLimitResponse) return rateLimitResponse;
 

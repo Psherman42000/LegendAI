@@ -29,6 +29,7 @@ export default async function PlansPage() {
     maxDurationSeconds: plan.maxDurationSeconds,
     features: [...plan.features],
     mpPlanId: plan.mpPlanId,
+    highlighted: plan.highlighted,
   }));
 
   return (

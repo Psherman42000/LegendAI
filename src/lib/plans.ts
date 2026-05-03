@@ -9,6 +9,7 @@ export const PLANS = {
     price: 0,
     videosPerMonth: 5,
     maxDurationSeconds: 300,
+    highlighted: false,
     features: [
       "5 vídeos por mês",
       "Até 5 minutos por vídeo",
@@ -23,6 +24,7 @@ export const PLANS = {
     price: 2900,
     videosPerMonth: 30,
     maxDurationSeconds: 1800,
+    highlighted: false,
     features: [
       "30 vídeos por mês",
       "Até 30 minutos por vídeo",
@@ -39,6 +41,7 @@ export const PLANS = {
     price: 5900,
     videosPerMonth: 100,
     maxDurationSeconds: 7200,
+    highlighted: true,
     features: [
       "100 vídeos por mês",
       "Até 2 horas por vídeo",
@@ -56,6 +59,7 @@ export const PLANS = {
     price: 9900,
     videosPerMonth: 999_999,
     maxDurationSeconds: 14_400,
+    highlighted: false,
     features: [
       "Vídeos ilimitados",
       "Até 4 horas por vídeo",

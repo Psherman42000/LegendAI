@@ -43,7 +43,6 @@ export function Sidebar() {
           <p className="text-xs text-[var(--text-secondary)]">{user?.email ?? ""}</p>
           <Button
             variant="outline"
-            size="sm"
             className="mt-3 w-full"
             onClick={() => signOut({ callbackUrl: "/" })}
           >

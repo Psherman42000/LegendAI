@@ -9,8 +9,9 @@ type PlanItem = {
   price: number;
   videosPerMonth: number;
   maxDurationSeconds: number;
-  features: string[];
+  features: readonly string[];
   mpPlanId: string | null;
+  highlighted: boolean;
 };
 
 export function PlansList({
@@ -20,8 +21,6 @@ export function PlansList({
   plans: PlanItem[];
   currentPlanId: PlanId;
 }) {
-  const highlightedPlan: PlanId = "PRO";
-
   return (
     <div className="grid gap-6 sm:grid-cols-2 xl:grid-cols-4">
       {plans.map((plan) => (
@@ -29,7 +28,7 @@ export function PlansList({
           key={plan.id}
           plan={plan}
           isCurrentPlan={plan.id === currentPlanId}
-          highlighted={plan.id === highlightedPlan && plan.id !== currentPlanId}
+          highlighted={plan.highlighted && plan.id !== currentPlanId}
         />
       ))}
     </div>
