@@ -46,5 +46,5 @@ export async function POST(request: Request, { params }: Params) {
     );
   }
 
-  return NextResponse.json({ ok: true, data: { content: generateSRT(segments), mimeType: "application/x-subrip" } });
+  return NextResponse.json({ ok: false, error: "Formato inválido" }, { status: 400 });
 }
