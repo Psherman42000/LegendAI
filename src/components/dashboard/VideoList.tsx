@@ -30,7 +30,7 @@ export function VideoList() {
           key={video.id}
           id={video.id}
           title={video.title}
-          status={video.status as "PRONTO" | "PROCESSANDO" | "ERRO"}
+          status={video.status}
           duration={video.duration}
         />
       ))}

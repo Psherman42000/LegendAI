@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { UsageBar } from "./UsageBar";
 
@@ -40,7 +39,6 @@ export function Sidebar() {
         <div className="surface-soft rounded-xl p-4">
           <div className="text-sm font-semibold">{user?.name ?? "Usuário"}</div>
           <p className="text-xs text-[var(--text-secondary)]">{user?.email ?? ""}</p>
-          <Badge className="mt-3">Pro</Badge>
           <Button
             variant="outline"
             size="sm"

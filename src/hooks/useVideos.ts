@@ -16,19 +16,25 @@ export function useVideos() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const controller = new AbortController();
+
     async function fetchVideos() {
       try {
-        const res = await fetch("/api/videos");
+        const res = await fetch("/api/videos", { signal: controller.signal });
         if (!res.ok) throw new Error("Falha ao carregar vídeos");
         const data = await res.json();
         setVideos(data.data ?? []);
       } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
         setError(err instanceof Error ? err.message : "Erro desconhecido");
       } finally {
         setLoading(false);
       }
     }
+
     fetchVideos();
+
+    return () => controller.abort();
   }, []);
 
   return { videos, loading, error };

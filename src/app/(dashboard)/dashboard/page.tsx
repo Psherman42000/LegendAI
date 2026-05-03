@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { PLANS } from "@/lib/plans";
 import { Header } from "@/components/dashboard/Header";
 import { StatsGrid } from "@/components/dashboard/StatsGrid";
 import { VideoList } from "@/components/dashboard/VideoList";
@@ -12,41 +13,62 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  let usage = null;
+  let subscription = null;
+  let videosCount = 0;
+  let totalMinutes = 0;
+  let error = false;
 
-  const [usage, subscription, videosCount, totalSeconds] = await Promise.all([
-    prisma.monthlyUsage.findUnique({
-      where: { userId_year_month: { userId: session.user.id, year, month } },
-    }),
-    prisma.subscription.findUnique({
-      where: { userId: session.user.id },
-    }),
-    prisma.video.count({ where: { userId: session.user.id, createdAt: { gte: new Date(year, month - 1, 1) } } }),
-    prisma.video.aggregate({
-      where: { userId: session.user.id },
-      _sum: { duration: true },
-    }),
-  ]);
+  try {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth() + 1;
+
+    const [usageData, subData, count, totalSeconds] = await Promise.all([
+      prisma.monthlyUsage.findUnique({
+        where: { userId_year_month: { userId: session.user.id, year, month } },
+      }),
+      prisma.subscription.findUnique({
+        where: { userId: session.user.id },
+      }),
+      prisma.video.count({
+        where: { userId: session.user.id, createdAt: { gte: new Date(year, month - 1, 1) } },
+      }),
+      prisma.video.aggregate({
+        where: { userId: session.user.id },
+        _sum: { duration: true },
+      }),
+    ]);
+
+    usage = usageData;
+    subscription = subData;
+    videosCount = count;
+    totalMinutes = Math.round((totalSeconds._sum.duration ?? 0) / 60);
+  } catch {
+    error = true;
+  }
 
   const planName = subscription?.plan ?? "FREE";
-  const planPrice = subscription
-    ? subscription.plan === "STARTER"
-      ? 2900
-      : subscription.plan === "PRO"
-      ? 5900
-      : subscription.plan === "UNLIMITED"
-      ? 9900
-      : 0
-    : 0;
-  const totalMinutes = Math.round((totalSeconds._sum.duration ?? 0) / 60);
+  const plan = PLANS[planName as keyof typeof PLANS];
+  const planPrice = plan?.price ?? 0;
+
+  if (error) {
+    return (
+      <main className="space-y-8 p-6 lg:p-10">
+        <Header title="Dashboard" description="Não foi possível carregar os dados. Tente novamente mais tarde." />
+        <div className="rounded-xl bg-red-500/10 p-6 text-red-400">
+          Erro ao carregar dados do dashboard. Verifique sua conexão ou tente novamente.
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="space-y-8 p-6 lg:p-10">
       <Header
         title="Dashboard"
         description="Monitore vídeos, minutos processados, renovação e status em um único lugar."
+        showUploadButton
       />
       <StatsGrid
         videosThisMonth={usage?.videosCount ?? 0}

@@ -1,18 +1,26 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
-export function Header({ title, description }: { title: string; description: string }) {
+export function Header({
+  title,
+  description,
+  showUploadButton = false,
+}: {
+  title: string;
+  description: string;
+  showUploadButton?: boolean;
+}) {
   return (
-    <header className="flex flex-col gap-4 border-b border-white/5 pb-6 lg:flex-row lg:items-end lg:justify-between">
+    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
       <div>
-        <h1 className="text-display text-3xl font-bold tracking-tight">{title}</h1>
-        <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">{description}</p>
+        <h1 className="text-display text-3xl font-bold">{title}</h1>
+        <p className="mt-2 text-sm text-[var(--text-secondary)]">{description}</p>
       </div>
-      {title === "Dashboard" && (
+      {showUploadButton && (
         <Link href="/upload">
           <Button>Upload novo vídeo</Button>
         </Link>
       )}
-    </header>
+    </div>
   );
 }
