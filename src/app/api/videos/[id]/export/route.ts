@@ -36,16 +36,15 @@ export async function POST(request: Request, { params }: Params) {
     return NextResponse.json({ ok: true, data: { content: generateVTT(segments), mimeType: "text/vtt" } });
   }
 
-  await prisma.video.update({
-    where: { id },
-    data: { status: "QUEUED" },
-  }).catch(() => undefined);
+  if (body.format === "VIDEO") {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Export manual desabilitado no fluxo automático. Aguarde status READY para baixar o MP4 final.",
+      },
+      { status: 409 },
+    );
+  }
 
-  return NextResponse.json({
-    ok: true,
-    data: {
-      estimatedTimeMinutes: 5,
-      message: "Job de burn-in enfileirado",
-    },
-  });
+  return NextResponse.json({ ok: true, data: { content: generateSRT(segments), mimeType: "application/x-subrip" } });
 }
