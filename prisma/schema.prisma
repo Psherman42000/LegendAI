@@ -19,9 +19,11 @@ enum VideoStatus {
   PROCESSING
   TRANSCRIBING
   CORRECTING
+  BURNING
+  UPLOADING_OUTPUTS
   READY
-  ERROR
   EXPORTED
+  ERROR
 }
 
 enum PaymentType {

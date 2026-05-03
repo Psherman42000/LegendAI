@@ -4,9 +4,11 @@ export type VideoStatus =
   | "PROCESSING"
   | "TRANSCRIBING"
   | "CORRECTING"
+  | "BURNING"
+  | "UPLOADING_OUTPUTS"
   | "READY"
-  | "ERROR"
-  | "EXPORTED";
+  | "EXPORTED"
+  | "ERROR";
 
 export type PaymentType = "SUBSCRIPTION" | "AVULSO";
 
