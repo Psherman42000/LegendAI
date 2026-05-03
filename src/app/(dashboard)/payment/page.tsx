@@ -1,14 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { PixPayment } from "@/components/payment/PixPayment";
 import { CardPayment } from "@/components/payment/CardPayment";
 import { Button } from "@/components/ui/button";
 
 type PaymentMethod = "PIX" | "CARD" | null;
 
-export default function PaymentPage() {
+function PaymentContent() {
   const [method, setMethod] = useState<PaymentMethod>(null);
+  const searchParams = useSearchParams();
+  const durationSeconds = Number(searchParams.get("duration")) || 60;
+  const videoTitle = searchParams.get("title") || "Pagamento avulso";
 
   return (
     <main className="space-y-8 p-6 lg:p-10">
@@ -85,19 +89,27 @@ export default function PaymentPage() {
 
           {method === "PIX" ? (
             <PixPayment
-              durationSeconds={60}
-              videoTitle="Pagamento avulso"
+              durationSeconds={durationSeconds}
+              videoTitle={videoTitle}
               onBack={() => setMethod(null)}
             />
           ) : (
             <CardPayment
-              durationSeconds={60}
-              videoTitle="Pagamento avulso"
+              durationSeconds={durationSeconds}
+              videoTitle={videoTitle}
               onBack={() => setMethod(null)}
             />
           )}
         </div>
       )}
     </main>
+  );
+}
+
+export default function PaymentPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-center text-[var(--text-secondary)]">Carregando...</div>}>
+      <PaymentContent />
+    </Suspense>
   );
 }

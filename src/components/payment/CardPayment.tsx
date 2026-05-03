@@ -125,11 +125,17 @@ export function CardPayment({ durationSeconds, videoTitle, onSuccess, onBack }: 
           </div>
         )}
 
+        {/* ⚠️ MOCK ONLY - DO NOT USE IN PRODUCTION (PCI-DSS violation)
+             Handling raw card data (number, CVV, expiry) client-side and
+             sending it to your server is a PCI-DSS violation. In production,
+             use a tokenization solution (Stripe Elements, etc.) so raw PAN
+             never reaches your server. */}
         <div className="space-y-2">
-          <label className="text-xs font-medium text-[var(--text-secondary)]">
+          <label htmlFor="card-number" className="text-xs font-medium text-[var(--text-secondary)]">
             Número do cartão
           </label>
           <Input
+            id="card-number"
             placeholder="0000 0000 0000 0000"
             value={cardNumber}
             onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
@@ -139,10 +145,11 @@ export function CardPayment({ durationSeconds, videoTitle, onSuccess, onBack }: 
         </div>
 
         <div className="space-y-2">
-          <label className="text-xs font-medium text-[var(--text-secondary)]">
+          <label htmlFor="card-holder" className="text-xs font-medium text-[var(--text-secondary)]">
             Nome do titular
           </label>
           <Input
+            id="card-holder"
             placeholder="Como está no cartão"
             value={cardHolder}
             onChange={(e) => setCardHolder(e.target.value)}
@@ -151,10 +158,11 @@ export function CardPayment({ durationSeconds, videoTitle, onSuccess, onBack }: 
 
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
-            <label className="text-xs font-medium text-[var(--text-secondary)]">
+            <label htmlFor="card-expiry" className="text-xs font-medium text-[var(--text-secondary)]">
               Validade
             </label>
             <Input
+              id="card-expiry"
               placeholder="MM/AA"
               value={cardExpiry}
               onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
@@ -163,10 +171,11 @@ export function CardPayment({ durationSeconds, videoTitle, onSuccess, onBack }: 
             />
           </div>
           <div className="space-y-2">
-            <label className="text-xs font-medium text-[var(--text-secondary)]">
+            <label htmlFor="card-cvv" className="text-xs font-medium text-[var(--text-secondary)]">
               CVV
             </label>
             <Input
+              id="card-cvv"
               placeholder="123"
               value={cardCvv}
               onChange={(e) => setCardCvv(e.target.value.replace(/\D/g, "").slice(0, 4))}

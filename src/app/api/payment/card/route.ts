@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { calcularPrecoAvulso } from "@/lib/plans";
+import { calcularPrecoAvulso, AVULSO_PRICE_PER_SECOND } from "@/lib/plans";
 import type { PaymentMethod, PaymentType } from "@/types/video";
 
 type Body = {
@@ -24,6 +24,25 @@ export async function POST(request: Request) {
   const duration = Math.max(1, body.durationSeconds || 60);
   const pricing = calcularPrecoAvulso(duration);
 
+  // ⚠️ MOCK ONLY - DO NOT USE IN PRODUCTION
+  // Handling raw card data (number, CVV, expiry) is a PCI-DSS violation.
+  // In production, tokenize card data client-side (e.g., via Stripe Elements)
+  // and never send raw PAN to your server.
+
+  // Server-side validation
+  if (body.cardHolder && body.cardHolder.trim().length < 2) {
+    return NextResponse.json(
+      { ok: false, error: "Nome do titular inválido" },
+      { status: 400 },
+    );
+  }
+  if (body.cardExpiry && !/^\d{2}\/\d{2}$/.test(body.cardExpiry)) {
+    return NextResponse.json(
+      { ok: false, error: "Data de validade inválida (use MM/AA)" },
+      { status: 400 },
+    );
+  }
+
   // Mock validation — in production this would call a payment gateway
   if (body.cardNumber && body.cardNumber.replace(/\s/g, "").length < 16) {
     return NextResponse.json(
@@ -43,7 +62,7 @@ export async function POST(request: Request) {
       amount: pricing.priceInCentavos,
       description: body.videoTitle || "Pagamento avulso",
       videoDuration: duration,
-      pricePerSecond: 150,
+      pricePerSecond: AVULSO_PRICE_PER_SECOND * 100,
       status: "PAID",
       paidAt: new Date(),
     },

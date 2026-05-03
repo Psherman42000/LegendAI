@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { calcularPrecoAvulso } from "@/lib/plans";
+import { calcularPrecoAvulso, AVULSO_PRICE_PER_SECOND } from "@/lib/plans";
 import type { PaymentMethod, PaymentType } from "@/types/video";
 
 type Body = {
@@ -20,6 +20,8 @@ export async function POST(request: Request) {
   const duration = Math.max(1, body.durationSeconds || 60);
   const pricing = calcularPrecoAvulso(duration);
 
+  const pixKey = process.env.PIX_KEY || "mock-pix-key@email.com";
+
   const payment = await prisma.payment.create({
     data: {
       userId: session.user.id,
@@ -28,10 +30,10 @@ export async function POST(request: Request) {
       amount: pricing.priceInCentavos,
       description: body.videoTitle || "Pagamento avulso",
       videoDuration: duration,
-      pricePerSecond: 150,
+      pricePerSecond: AVULSO_PRICE_PER_SECOND * 100,
       status: "PENDING",
       pixQrCode: `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==`,
-      pixQrCodeText: `00020126580014BR.GOV.BCB.PIX0136+55${session.user.email.replace(/[^0-9]/g, "").slice(0, 11)}@pix.bb.com.br5204000053039865406${pricing.priceInCentavos}5802BR5925${session.user.name || "Usuario"}6008BRASILIA62070503***6304ABCD`,
+      pixQrCodeText: `00020126580014BR.GOV.BCB.PIX0136+55${pixKey}5204000053039865406${pricing.priceInCentavos}5802BR5925${session.user.name || "Usuario"}6008BRASILIA62070503***6304ABCD`,
       pixExpiration: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
     },
   });

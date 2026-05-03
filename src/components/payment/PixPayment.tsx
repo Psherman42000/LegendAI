@@ -127,11 +127,12 @@ export function PixPayment({ durationSeconds, videoTitle, onSuccess, onBack }: P
           </div>
 
           <div className="w-full space-y-2">
-            <label className="text-xs font-medium text-[var(--text-secondary)]">
+            <label htmlFor="pix-code" className="text-xs font-medium text-[var(--text-secondary)]">
               Código PIX copia e cola
             </label>
             <div className="flex gap-2">
               <Input
+                id="pix-code"
                 readOnly
                 value={pixData.pixQrCodeText}
                 className="flex-1 text-xs"
