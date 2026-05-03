@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 
 export function Header({ title, description }: { title: string; description: string }) {
@@ -7,7 +8,11 @@ export function Header({ title, description }: { title: string; description: str
         <h1 className="text-display text-3xl font-bold tracking-tight">{title}</h1>
         <p className="mt-2 max-w-2xl text-sm text-[var(--text-secondary)]">{description}</p>
       </div>
-      <Button>Upload novo vídeo</Button>
+      {title === "Dashboard" && (
+        <Link href="/upload">
+          <Button>Upload novo vídeo</Button>
+        </Link>
+      )}
     </header>
   );
 }
