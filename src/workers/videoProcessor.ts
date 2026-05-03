@@ -1,5 +1,5 @@
 import { Worker, type Job } from "bullmq";
-import { Prisma } from "@prisma/client";
+import { Prisma, VideoStatus } from "@prisma/client";
 import { cleanup, downloadFromR2, extractAudio, extractThumbnail, uploadToR2 } from "@/lib/ffmpeg";
 import { correctTranscription } from "@/lib/gpt-correction";
 import { prisma } from "@/lib/db";
@@ -19,7 +19,7 @@ const connection = process.env.REDIS_URL
 
 async function updateVideoStatus(
   videoId: string,
-  status: "PROCESSING" | "TRANSCRIBING" | "CORRECTING" | "READY" | "ERROR",
+  status: VideoStatus,
   extra: Prisma.VideoUpdateInput = {},
 ): Promise<void> {
   await prisma.video.update({
