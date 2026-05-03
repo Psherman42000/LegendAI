@@ -1,3 +1,4 @@
+import { execFile } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { SubtitleStyleId } from "./subtitle-styles";
@@ -40,6 +41,11 @@ export async function uploadToR2(filePath: string, key: string): Promise<string>
   return `${process.env.R2_PUBLIC_URL ?? "https://r2.local"}/${key}`;
 }
 
+/**
+ * Run FFmpeg to burn subtitles into the video using the specified style.
+ * The filter template (style.ffmpegFilter) must contain `FILE` as a placeholder
+ * that gets replaced with the escaped SRT path.
+ */
 export async function applySubtitleStyle(
   videoPath: string,
   srtPath: string,
@@ -47,8 +53,28 @@ export async function applySubtitleStyle(
   outputPath: string,
 ): Promise<string> {
   const style = SUBTITLE_STYLES[styleId];
-  void videoPath;
-  void srtPath;
-  void style;
+  const escapedSrt = srtPath.replace(/\\/g, "/");
+  const filter = style.ffmpegFilter.replace("FILE", escapedSrt);
+
+  await new Promise<void>((resolve, reject) => {
+    execFile(
+      process.env.FFMPEG_PATH ?? "ffmpeg",
+      [
+        "-i", videoPath,
+        "-vf", filter,
+        "-c:a", "copy",
+        "-y", outputPath,
+      ],
+      { timeout: 300_000 },
+      (error, _stdout, stderr) => {
+        if (error) {
+          reject(new Error(stderr || error.message));
+        } else {
+          resolve();
+        }
+      },
+    );
+  });
+
   return outputPath;
 }

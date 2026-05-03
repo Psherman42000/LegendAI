@@ -1,9 +1,18 @@
+import path from "node:path";
 import { Worker, type Job } from "bullmq";
 import { Prisma, VideoStatus } from "@prisma/client";
-import { cleanup, downloadFromR2, extractAudio, extractThumbnail, uploadToR2 } from "@/lib/ffmpeg";
+import {
+  cleanup,
+  downloadFromR2,
+  extractAudio,
+  extractThumbnail,
+  uploadToR2,
+  applySubtitleStyle,
+} from "@/lib/ffmpeg";
 import { correctTranscription } from "@/lib/gpt-correction";
 import { prisma } from "@/lib/db";
 import { sendVideoReadyEmail } from "@/lib/email";
+import { writeSrtFile } from "@/lib/subtitle-artifacts";
 import { transcribeWithWhisper } from "@/lib/whisper";
 
 interface VideoJob {
@@ -57,56 +66,100 @@ async function saveTranscription(
 
 async function processVideo(job: Job<VideoJob>): Promise<void> {
   const { videoId, originalUrl } = job.data;
-  await updateVideoStatus(videoId, "PROCESSING");
-  await job.updateProgress(5);
+  let videoPath = "";
+  let audioPath = "";
+  let thumbnailPath = "";
+  let srtPath = "";
+  let outputPath = "";
 
-  const videoPath = await downloadFromR2(originalUrl);
-  await job.updateProgress(15);
+  try {
+    await updateVideoStatus(videoId, "PROCESSING");
+    await job.updateProgress(5);
 
-  const audioPath = await extractAudio(videoPath);
-  await updateVideoStatus(videoId, "TRANSCRIBING");
-  await job.updateProgress(25);
+    videoPath = await downloadFromR2(originalUrl);
+    await job.updateProgress(15);
 
-  const rawTranscription = await transcribeWithWhisper(audioPath);
-  await job.updateProgress(55);
+    audioPath = await extractAudio(videoPath);
+    await updateVideoStatus(videoId, "TRANSCRIBING");
+    await job.updateProgress(25);
 
-  await updateVideoStatus(videoId, "CORRECTING");
-  const correctedSegments = await correctTranscription(rawTranscription.segments);
-  await job.updateProgress(70);
+    const rawTranscription = await transcribeWithWhisper(audioPath);
+    await job.updateProgress(55);
 
-  await saveTranscription(
-    videoId,
-    rawTranscription.rawText,
-    correctedSegments.map((segment) => segment.text).join(" "),
-    correctedSegments,
-  );
-  await job.updateProgress(80);
+    await updateVideoStatus(videoId, "CORRECTING");
+    const correctedSegments = await correctTranscription(rawTranscription.segments);
+    await job.updateProgress(70);
 
-  const audioUrl = await uploadToR2(audioPath, `audio/${videoId}.wav`);
-  await job.updateProgress(85);
+    await saveTranscription(
+      videoId,
+      rawTranscription.rawText,
+      correctedSegments.map((segment) => segment.text).join(" "),
+      correctedSegments,
+    );
+    await job.updateProgress(75);
 
-  const thumbnailPath = await extractThumbnail(videoPath);
-  const thumbnailUrl = await uploadToR2(thumbnailPath, `thumbnails/${videoId}.jpg`);
-  await job.updateProgress(90);
+    // Generate SRT from corrected segments
+    srtPath = await writeSrtFile(videoId, correctedSegments);
+    await job.updateProgress(78);
 
-  await updateVideoStatus(videoId, "READY", {
-    processedAt: new Date(),
-    audioUrl,
-    thumbnailUrl,
-  });
+    // Burn subtitles into video
+    await updateVideoStatus(videoId, "BURNING");
+    outputPath = path.join(process.cwd(), "tmp", `${videoId}-subtitled.mp4`);
+    await applySubtitleStyle(videoPath, srtPath, "classic", outputPath);
+    await job.updateProgress(85);
 
-  const video = await prisma.video.findUnique({ where: { id: videoId }, include: { user: true } });
-  if (video?.user.email) {
-    await sendVideoReadyEmail({
-      userEmail: video.user.email,
-      userName: video.user.name ?? "Usuário",
-      videoTitle: video.title,
-      videoUrl: `/videos/${videoId}`,
+    // Upload all outputs
+    await updateVideoStatus(videoId, "UPLOADING_OUTPUTS");
+
+    const audioUrl = await uploadToR2(audioPath, `audio/${videoId}.wav`);
+    await job.updateProgress(87);
+
+    thumbnailPath = await extractThumbnail(videoPath);
+    const thumbnailUrl = await uploadToR2(thumbnailPath, `thumbnails/${videoId}.jpg`);
+    await job.updateProgress(90);
+
+    const processedUrl = await uploadToR2(outputPath, `videos/${videoId}/final.mp4`);
+    await job.updateProgress(93);
+
+    const srtUrl = await uploadToR2(srtPath, `videos/${videoId}/subtitles.srt`);
+    await job.updateProgress(96);
+
+    // Mark ready only when both artifacts exist
+    await updateVideoStatus(videoId, "READY", {
+      processedAt: new Date(),
+      processedUrl,
+      srtUrl,
+      audioUrl,
+      thumbnailUrl,
+      errorMessage: null,
     });
-  }
+    await job.updateProgress(98);
 
-  await job.updateProgress(100);
-  await cleanup([videoPath, audioPath, thumbnailPath]);
+    const video = await prisma.video.findUnique({ where: { id: videoId }, include: { user: true } });
+    if (video?.user.email) {
+      await sendVideoReadyEmail({
+        userEmail: video.user.email,
+        userName: video.user.name ?? "Usuário",
+        videoTitle: video.title,
+        videoUrl: `/videos/${videoId}`,
+      });
+    }
+
+    await job.updateProgress(100);
+  } catch (error) {
+    await prisma.video
+      .update({
+        where: { id: videoId },
+        data: {
+          status: "ERROR",
+          errorMessage: error instanceof Error ? error.message : "Unknown worker error",
+        },
+      })
+      .catch(() => undefined);
+    throw error;
+  } finally {
+    await cleanup([videoPath, audioPath, thumbnailPath, srtPath, outputPath]);
+  }
 }
 
 new Worker<VideoJob>("video-processing", processVideo, connection);
