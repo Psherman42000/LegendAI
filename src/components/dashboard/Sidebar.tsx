@@ -9,6 +9,7 @@ const links = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/upload", label: "Upload" },
   { href: "/videos", label: "Meus Vídeos" },
+  { href: "/plans", label: "Planos" },
   { href: "/billing", label: "Assinatura" },
   { href: "/settings", label: "Configurações" },
 ];
