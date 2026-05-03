@@ -1,8 +1,8 @@
 "use client";
 
+import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 
 export function RegisterForm() {
   return (
@@ -12,9 +12,12 @@ export function RegisterForm() {
         <CardDescription>Cadastre-se para gerar legendas automaticamente.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <Input placeholder="Nome completo" />
-        <Input type="email" placeholder="seu@email.com" />
-        <Button className="w-full">Criar conta com Google</Button>
+        <Button
+          className="w-full"
+          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+        >
+          Criar conta com Google
+        </Button>
       </CardContent>
     </Card>
   );
