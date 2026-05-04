@@ -7,7 +7,7 @@ import { VideoUploadFlow } from "./VideoUploadFlow";
 import { usePlan } from "@/hooks/usePlan";
 
 export function UploadZone() {
-  const { uploadFile, uploadUrl, isUploading, progress, error } = useUpload();
+  const { uploadFile, uploadUrl, isUploading, progress, error, useAiCorrection, setUseAiCorrection } = useUpload();
   const { canUpload, isLoading: isPlanLoading } = usePlan();
   const [uploadedVideo, setUploadedVideo] = useState<{
     id: string;
@@ -87,6 +87,16 @@ export function UploadZone() {
                   }
                 }}
               />
+            </label>
+
+            <label className="flex cursor-pointer items-center gap-2 text-sm text-[var(--text-secondary)]">
+              <input
+                type="checkbox"
+                checked={useAiCorrection}
+                onChange={(e) => setUseAiCorrection(e.target.checked)}
+                className="size-4 rounded border-[var(--border)] bg-[var(--surface-2)]"
+              />
+              Usar correção com IA (melhora a qualidade das legendas)
             </label>
 
             <div className="grid gap-3 md:grid-cols-[1fr_auto]">

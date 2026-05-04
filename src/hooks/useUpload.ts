@@ -13,6 +13,7 @@ export function useUpload() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
+  const [useAiCorrection, setUseAiCorrection] = useState(true);
 
   async function uploadFile(file: File): Promise<{ id: string; url: string; title: string; duration: number } | null> {
     setIsUploading(true);
@@ -44,6 +45,7 @@ export function useUpload() {
           fileSize: file.size,
           mimeType: file.type,
           paymentType: "SUBSCRIPTION",
+          useAiCorrection,
         }),
       });
 
@@ -84,6 +86,7 @@ export function useUpload() {
           originalUrl: url,
           duration: 0,
           paymentType: "SUBSCRIPTION",
+          useAiCorrection,
         }),
       });
 
@@ -117,5 +120,7 @@ export function useUpload() {
     progress,
     error,
     uploadedVideo,
+    useAiCorrection,
+    setUseAiCorrection,
   };
 }
