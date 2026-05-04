@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 /** Returns true when R2 credentials are configured in the environment. */
@@ -8,7 +8,7 @@ export function isR2Configured(): boolean {
 
 /** Lazy S3Client – only created when R2 is actually used. */
 let _s3Client: S3Client | null = null;
-function getS3Client(): S3Client {
+export function getS3Client(): S3Client {
   if (!_s3Client) {
     _s3Client = new S3Client({
       region: "auto",
@@ -46,7 +46,16 @@ export async function uploadBufferToR2(
 }
 
 export async function deleteFromR2(key: string): Promise<void> {
-  void key;
+  if (!process.env.R2_ENDPOINT || !process.env.R2_BUCKET_NAME) {
+    throw new Error("R2 environment variables are missing");
+  }
+
+  const command = new DeleteObjectCommand({
+    Bucket: process.env.R2_BUCKET_NAME,
+    Key: key,
+  });
+
+  await getS3Client().send(command);
 }
 
 /**
@@ -84,9 +93,70 @@ export async function getPublicUrl(
  * Extract the R2 object key from a public URL or return the input if it's already a key.
  */
 export function extractR2Key(url: string): string {
-  const publicUrl = process.env.R2_PUBLIC_URL ?? "";
-  if (publicUrl && url.startsWith(publicUrl)) {
-    return url.slice(publicUrl.length + 1); // +1 for the trailing slash
+  const publicUrl = normalizeBaseUrl(process.env.R2_PUBLIC_URL ?? "");
+  const trimmed = url.trim();
+
+  if (publicUrl && trimmed.startsWith(`${publicUrl}/`)) {
+    return trimmed.slice(publicUrl.length + 1);
   }
-  return url;
+
+  const r2Endpoint = normalizeBaseUrl(process.env.R2_ENDPOINT ?? "");
+  if (r2Endpoint && trimmed.startsWith(`${r2Endpoint}/`)) {
+    try {
+      return extractKeyFromR2Url(new URL(trimmed));
+    } catch {
+      return trimmed;
+    }
+  }
+
+  return trimmed;
+}
+
+function normalizeBaseUrl(url: string): string {
+  return url.trim().replace(/\/+$/, "");
+}
+
+function extractKeyFromR2Url(url: URL): string {
+  const pathname = decodeURIComponent(url.pathname.replace(/^\/+/, ""));
+  const bucketName = process.env.R2_BUCKET_NAME ?? "";
+
+  if (bucketName && pathname.startsWith(`${bucketName}/`)) {
+    return pathname.slice(bucketName.length + 1);
+  }
+
+  return pathname;
+}
+
+/**
+ * Normalize a stored URL-or-key into a fresh accessible URL.
+ *
+ * Accepts:
+ * - `null` / `undefined` → returns `null`
+ * - A public URL (starts with R2_PUBLIC_URL) → extracts key, returns fresh signed URL
+ * - A signed URL (contains R2_ENDPOINT)   → extracts key, returns fresh signed URL
+ * - An external URL (neither of the above) → returned unchanged
+ * - A raw key                             → returns a fresh signed URL
+ */
+export async function getSignedUrlFromAny(
+  urlOrKey?: string | null,
+): Promise<string | null> {
+  if (!urlOrKey) return null;
+
+  const trimmed = urlOrKey.trim();
+
+  // If it looks like a URL, try to determine if it's an R2 URL
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+    const key = extractR2Key(trimmed);
+
+    // Public/signed R2 URLs are converted into fresh signed URLs.
+    if (key !== trimmed) {
+      return getSignedDownloadUrl(key);
+    }
+
+    // External (non-R2) URL — return unchanged
+    return trimmed;
+  }
+
+  // Raw key — generate a fresh signed URL
+  return getSignedDownloadUrl(trimmed);
 }

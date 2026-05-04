@@ -16,7 +16,7 @@ export const SUBTITLE_STYLES = {
     position: "bottom",
     padding: 8,
     ffmpegFilter:
-      "subtitles=FILE:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Shadow=1,Alignment=2,MarginV=30'",
+      "subtitles=FILE:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF,OutlineColour=&H000000,Outline=2,Shadow=1,Alignment=2,MarginV=30,WrapStyle=0'",
   },
   boxed: {
     id: "boxed",
@@ -31,7 +31,7 @@ export const SUBTITLE_STYLES = {
     position: "bottom",
     padding: 10,
     ffmpegFilter:
-      "subtitles=FILE:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF,BackColour=&H99000000,BorderStyle=4,Alignment=2,MarginV=30'",
+      "subtitles=FILE:force_style='FontName=Arial,FontSize=18,PrimaryColour=&HFFFFFF,BackColour=&H99000000,BorderStyle=4,Alignment=2,MarginV=30,WrapStyle=0'",
   },
   highlighted: {
     id: "highlighted",
@@ -46,7 +46,7 @@ export const SUBTITLE_STYLES = {
     position: "bottom",
     padding: 8,
     ffmpegFilter:
-      "subtitles=FILE:force_style='FontName=Impact,FontSize=22,PrimaryColour=&H00FFFF,OutlineColour=&H000000,Outline=3,Alignment=2,MarginV=30'",
+      "subtitles=FILE:force_style='FontName=Impact,FontSize=22,PrimaryColour=&H00FFFF,OutlineColour=&H000000,Outline=3,Alignment=2,MarginV=30,WrapStyle=0'",
   },
   minimal: {
     id: "minimal",
@@ -61,7 +61,7 @@ export const SUBTITLE_STYLES = {
     position: "bottom",
     padding: 6,
     ffmpegFilter:
-      "subtitles=FILE:force_style='FontName=Helvetica,FontSize=14,PrimaryColour=&HFFFFFF,Outline=0,Shadow=0,Alignment=2,MarginV=20'",
+      "subtitles=FILE:force_style='FontName=Helvetica,FontSize=14,PrimaryColour=&HFFFFFF,Outline=0,Shadow=0,Alignment=2,MarginV=20,WrapStyle=0'",
   },
   reels: {
     id: "reels",
@@ -76,7 +76,7 @@ export const SUBTITLE_STYLES = {
     position: "top",
     padding: 10,
     ffmpegFilter:
-      "subtitles=FILE:force_style='FontName=Arial Black,FontSize=20,PrimaryColour=&HFFFFFF,BackColour=&HCC00FF00,BorderStyle=4,Alignment=8,MarginV=40'",
+      "subtitles=FILE:force_style='FontName=Arial Black,FontSize=20,PrimaryColour=&HFFFFFF,BackColour=&HCC00FF00,BorderStyle=4,Alignment=8,MarginV=40,WrapStyle=0'",
   },
 } as const;
 

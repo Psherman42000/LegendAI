@@ -26,6 +26,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: false, error: "Nenhum arquivo enviado" }, { status: 400 });
     }
 
+    const MAX_FILE_SIZE_MB = 500;
+    const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      return NextResponse.json(
+        { ok: false, error: `Arquivo excede o limite de ${MAX_FILE_SIZE_MB}MB` },
+        { status: 413 },
+      );
+    }
+
     if (isR2Configured()) {
       // ---- R2 upload path ----
       const key = `uploads/${userId}/${Date.now()}-${file.name}`;

@@ -12,8 +12,8 @@ setInterval(() => {
   }
 }, windowMs);
 
-const PUBLIC_PATHS = ["/", "/login", "/register", "/api/auth", "/api/health"];
-const STATIC_PATHS = ["/_next", "/favicon.ico"];
+const PUBLIC_PATHS = ["/", "/login", "/register", "/api/auth", "/api/health", "/api/worker/start"];
+const STATIC_PATHS = ["/_next", "/favicon.ico", "/uploads", "/ffmpeg"];
 
 function isPublic(path: string): boolean {
   if (STATIC_PATHS.some((p) => path.startsWith(p))) return true;
@@ -34,7 +34,7 @@ function rateLimit(ip: string): NextResponse | null {
     const retryAfter = Math.ceil((bucket.resetAt - now) / 1000);
     return NextResponse.json(
       { ok: false, error: "Rate limit excedido" },
-      { status: 429, headers: { "Retry-After": String(retryAfter) } }
+      { status: 429, headers: { "Retry-After": String(retryAfter) } },
     );
   }
 
@@ -47,6 +47,21 @@ export async function middleware(request: NextRequest) {
 
   if (isPublic(pathname)) {
     return NextResponse.next();
+  }
+
+  // Check authentication for protected routes
+  // NOTE: This is a shallow cookie existence check — route handlers still
+  // validate the actual session via getServerSession(). The cookie check
+  // prevents unauthenticated requests from reaching the handler, reducing
+  // load, but does not replace server-side session validation.
+  const sessionToken = request.cookies.get("next-auth.session-token")?.value
+    ?? request.cookies.get("__Secure-next-auth.session-token")?.value;
+  if (!sessionToken) {
+    const isApi = pathname.startsWith("/api/");
+    if (isApi) {
+      return NextResponse.json({ ok: false, error: "Não autenticado" }, { status: 401 });
+    }
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "unknown";

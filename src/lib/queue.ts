@@ -18,7 +18,20 @@ function getVideoQueue(): Queue<VideoJobPayload> {
 
   if (!videoQueue) {
     videoQueue = new Queue<VideoJobPayload>("video-processing", {
-      connection: { url: redisUrl },
+      connection: {
+        url: redisUrl,
+        maxRetriesPerRequest: 3,
+        enableOfflineQueue: false,
+      },
+      defaultJobOptions: {
+        removeOnComplete: true,
+        removeOnFail: false,
+        attempts: 3,
+        backoff: {
+          type: "exponential",
+          delay: 5000,
+        },
+      },
     });
 
     process.on("SIGTERM", async () => {
@@ -35,11 +48,26 @@ function getVideoQueue(): Queue<VideoJobPayload> {
 
 export async function enqueueVideoJob(data: VideoJobPayload): Promise<void> {
   const queue = getVideoQueue();
+  await queue.add("process-video", data);
+}
 
-  await queue.add("process-video", data, {
-    removeOnComplete: true,
-    removeOnFail: false,
-    attempts: 3,
-    delay: 0,
-  });
+/**
+ * Trigger the on-demand worker to start processing jobs.
+ * This sends a lightweight HTTP request to the worker start URL.
+ * If no URL is configured, it silently does nothing (cron will catch it).
+ */
+export async function triggerWorker(): Promise<void> {
+  const workerStartUrl = process.env.WORKER_START_URL;
+  if (!workerStartUrl) return;
+
+  try {
+    await fetch(workerStartUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ secret: process.env.WORKER_SECRET ?? "" }),
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch {
+    // Silent fail — cron backup will handle it
+  }
 }

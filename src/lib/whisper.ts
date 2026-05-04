@@ -53,7 +53,7 @@ async function transcribeWithApi(audioPath: string): Promise<WhisperApiResponse 
     const formData = new FormData();
     formData.append("file", blob, path.basename(audioPath));
     formData.append("language", "Portuguese");
-    formData.append("word_timestamps", "false");
+    formData.append("word_timestamps", "true");
 
     const res = await fetch(`${apiUrl.replace(/\/$/, "")}/transcribe`, {
       method: "POST",
@@ -144,6 +144,8 @@ async function transcribeWithLocalWhisper(audioPath: string): Promise<WhisperApi
           "json",
           "--output_dir",
           tmpDir,
+          "--word_timestamps",
+          "True",
           "--verbose",
           "False",
         ],
@@ -199,7 +201,7 @@ async function transcribeWithOpenAI(audioPath: string): Promise<WhisperApiRespon
     model: "whisper-1",
     language: "pt",
     response_format: "verbose_json",
-    timestamp_granularities: ["segment"],
+    timestamp_granularities: ["segment", "word"],
   });
 
   const segments =
@@ -208,6 +210,12 @@ async function transcribeWithOpenAI(audioPath: string): Promise<WhisperApiRespon
       start: seg.start,
       end: seg.end,
       text: seg.text.trim(),
+      words: seg.words?.map((w) => ({
+        word: w.word,
+        start: w.start,
+        end: w.end,
+        confidence: (w as { probability?: number }).probability,
+      })),
     })) ?? [];
 
   return {
