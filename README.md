@@ -39,31 +39,60 @@ npm run db:seed
 
 Além das variáveis padrão de banco de dados e NextAuth, configure:
 
-**Cloudflare R2 (Storage):**
+**Cloudflare R2 (Storage) - Obrigatório para upload em produção:**
 ```env
-R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com      # Obrigatório para ativar o R2
 R2_ACCESS_KEY_ID=your_access_key
 R2_SECRET_ACCESS_KEY=your_secret_key
 R2_BUCKET_NAME=your_bucket_name
-R2_PUBLIC_URL=https://pub-xxx.r2.dev # Opcional, o sistema gera URLs pré-assinadas se for privado
+R2_PUBLIC_URL=https://pub-xxx.r2.dev
 ```
-*Nota: Em ambiente de desenvolvimento, se as variáveis do R2 não estiverem presentes, o sistema fará fallback automático para salvar uploads no disco local (`public/uploads/`).*
+> ⚠️ **Importante:** `R2_ENDPOINT` é obrigatório. Sem ele, o sistema cai no fallback de disco (`public/uploads/`), que retorna URLs relativas e pode causar erro `Invalid URL` no worker.
+
+**Aplicação:**
+```env
+NEXT_PUBLIC_APP_URL=http://localhost:3000  # Necessário para URLs absolutas no fallback de disco
+```
 
 **Correção de Legendas (IA):**
 ```env
-# Configuração do OpenCode SDK para correção de pontuação e gramática
+# Configuração do OpenCode SDK (precisa do servidor OpenCode rodando localmente)
 OPENCODE_BASE_URL=http://127.0.0.1:4096
 OPENCODE_MODEL=opencode-go/deepseek-v4-flash
+
+# Fallback quando OpenCode não está disponível
+OPENAI_API_KEY=sk-...
 ```
+> ℹ️ **Comportamento:** O sistema tenta usar o OpenCode primeiro. Se falhar (servidor offline), faz fallback automático para OpenAI. Se OpenAI também falhar, retorna os segmentos originais do Whisper.
 
 ### Rodando o Ambiente de Desenvolvimento
 
-Para iniciar tanto o servidor Next.js quanto o Worker do BullMQ simultaneamente no Windows, utilize o script PowerShell:
+Para iniciar todos os serviços de desenvolvimento no Windows, utilize o script PowerShell:
 
 ```powershell
 .\start-dev.ps1
 ```
-Este script gerencia os processos e salva os logs separadamente na pasta `.next/` (`next.out.log`, `worker.out.log`, etc).
+
+Este script gerencia automaticamente:
+1. PostgreSQL
+2. Redis (versão 6.2+ recomendada)
+3. Whisper API (`localhost:8000`, opcional `-SkipWhisper`)
+4. **OpenCode Server** (`localhost:4096`, opcional `-SkipOpenCode`)
+5. Next.js Dev Server (`localhost:3000`)
+6. Worker BullMQ (processamento de vídeo em background)
+
+**Logs:** São salvos separadamente na pasta `.next/` (`dev-server-out.log`, `worker-out.log`, `opencode.log`, etc).
+
+**Parar tudo:**
+```powershell
+.\start-dev.ps1 -Stop
+```
+
+**Pular serviços opcionais:**
+```powershell
+.\start-dev.ps1 -SkipWhisper      # Se não tiver Whisper local
+.\start-dev.ps1 -SkipOpenCode     # Se não tiver OpenCode local
+```
 
 ### Usuário de Teste (Dev)
 
@@ -83,8 +112,20 @@ READY means both files exist:
 - `processedUrl` (burnt MP4)
 - `srtUrl` (subtitle file)
 
+### Requisitos Adicionais
+
+**FFmpeg (Windows):**
+- Baixe em https://www.gyan.dev/ffmpeg/builds/ e extraia em `C:\tools\ffmpeg\`
+- Configure no `.env.local`: `FFMPEG_PATH=C:\tools\ffmpeg\ffmpeg-8.1-essentials_build\bin\ffmpeg.exe`
+
+**Redis:**
+- Versão 6.2+ recomendada (a versão 5.0 funciona mas mostra warnings)
+- Extraia o Redis para a pasta `redis5/` na raiz do projeto
+
 ### Estratégias de Correção de Legenda
 
-O pipeline utiliza o **OpenCode SDK** para correção de pontuação e gramática:
-- **OpenCode SDK:** Usa o modelo configurado em `OPENCODE_MODEL` (ex: `opencode-go/deepseek-v4-flash`) via API local ou remota do OpenCode. Excelente qualidade em PT-BR mantendo o estilo coloquial.
-- **Fallback:** Caso a correção via IA falhe, o sistema retorna os segmentos originais gerados pelo Whisper para garantir que o pipeline não seja interrompido.
+O pipeline utiliza o **OpenCode SDK** como padrão para correção de pontuação e gramática:
+- **OpenCode SDK:** Usa o modelo configurado em `OPENCODE_MODEL` (ex: `opencode-go/deepseek-v4-flash`) via API local na porta 4096. Excelente qualidade em PT-BR mantendo o estilo coloquial.
+- **OpenAI Fallback:** Quando o OpenCode não está disponível, usa `gpt-4o-mini` via OpenAI SDK.
+- **Interface:** Na tela de upload, há um toggle **"Usar correção com IA"** (ligado por padrão) que envia a flag `useAiCorrection` para o worker.
+- **Último Fallback:** Se ambos falharem, retorna os segmentos originais do Whisper para garantir que o pipeline não seja interrompido.

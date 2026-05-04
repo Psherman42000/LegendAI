@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
+import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 
 const display = Space_Grotesk({
   subsets: ["latin"],
@@ -40,7 +41,7 @@ export default function RootLayout({
       className={`${display.variable} ${body.variable} h-full antialiased`}
     >
       <body className="min-h-screen bg-background text-foreground">
-        {children}
+        <NextAuthProvider>{children}</NextAuthProvider>
       </body>
     </html>
   );

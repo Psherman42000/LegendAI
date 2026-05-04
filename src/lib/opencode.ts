@@ -1,5 +1,11 @@
-import { createOpencodeClient } from "@opencode-ai/sdk";
+let opencodeClient: any;
 
-export const opencodeClient = createOpencodeClient({
-  baseUrl: process.env.OPENCODE_BASE_URL || "http://127.0.0.1:4096",
-});
+export async function getOpencodeClient() {
+  if (!opencodeClient) {
+    const { createOpencodeClient } = await import("@opencode-ai/sdk");
+    opencodeClient = createOpencodeClient({
+      baseUrl: process.env.OPENCODE_BASE_URL || "http://127.0.0.1:4096",
+    });
+  }
+  return opencodeClient;
+}

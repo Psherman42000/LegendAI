@@ -1,4 +1,4 @@
-import { opencodeClient } from "../opencode";
+import { getOpencodeClient } from "../opencode";
 import type { TranscriptionSegment } from "@/types/subtitle";
 
 const MODEL = process.env.OPENCODE_MODEL || "opencode-go/deepseek-v4-flash";
@@ -52,6 +52,7 @@ export async function correctWithOpenCode(
   segments: TranscriptionSegment[]
 ): Promise<TranscriptionSegment[]> {
   let sessionId: string | undefined;
+  const opencodeClient = await getOpencodeClient();
   try {
     const { data: session, error: createError } = await opencodeClient.session.create({});
     if (createError || !session) {

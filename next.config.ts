@@ -16,6 +16,10 @@ export const PWA_CONFIG = {
 } as const;
 
 const nextConfig: NextConfig = {
+  // Explicit root to avoid lockfile confusion (multiple package-lock.json on Desktop)
+  turbopack: {
+    root: process.cwd(),
+  },
   experimental: {
     optimizePackageImports: ["lucide-react", "date-fns"],
   },

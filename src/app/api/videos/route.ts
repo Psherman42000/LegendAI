@@ -43,13 +43,21 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const session = await getServerSession(authOptions);
-  
+
+  // Debug logging to trace session/user mismatch issues
+  if (process.env.NODE_ENV === "development") {
+    console.log("[api/videos POST] session:", session?.user
+      ? { id: session.user.id, email: session.user.email }
+      : "no session");
+  }
+
   // Allow unauthenticated video creation in development for testing
   let userId = session?.user?.id;
   if (!userId && process.env.NODE_ENV === "development") {
     userId = "dev-user";
+    console.log("[api/videos POST] using dev-user fallback");
   }
-  
+
   if (!userId) {
     return NextResponse.json({ ok: false, error: "Não autenticado" }, { status: 401 });
   }
