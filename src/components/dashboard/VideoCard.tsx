@@ -1,15 +1,20 @@
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type VideoCardProps = {
+  id: string;
   title: string;
-  status: "PROCESSANDO" | "PRONTO" | "ERRO" | "QUEUED";
+  status: string;
   duration: string;
 };
 
-export function VideoCard({ title, status, duration }: VideoCardProps) {
-  const tone = status === "PRONTO" ? "success" : status === "ERRO" ? "danger" : "warning";
-  return (
+const KNOWN_STATUSES = ["PRONTO", "PROCESSANDO", "ERRO", "QUEUED"] as const;
+
+export function VideoCard({ id, title, status, duration }: VideoCardProps) {
+  const normalized = KNOWN_STATUSES.includes(status as typeof KNOWN_STATUSES[number]) ? status : "PROCESSANDO";
+  const tone = normalized === "PRONTO" ? "success" : normalized === "ERRO" ? "danger" : "warning";
+  const card = (
     <Card>
       <CardHeader className="flex items-start justify-between gap-4">
         <div>
@@ -22,5 +27,11 @@ export function VideoCard({ title, status, duration }: VideoCardProps) {
         Preview, editar timing e exportar legenda.
       </CardContent>
     </Card>
+  );
+
+  return (
+    <Link href={`/videos/${id}`} className="block transition hover:opacity-80">
+      {card}
+    </Link>
   );
 }

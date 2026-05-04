@@ -19,7 +19,9 @@ export function Hero() {
             <Link href="/register">
               <Button>Começar grátis</Button>
             </Link>
-            <Button variant="outline">Ver demo</Button>
+            <Link href="#demo">
+              <Button variant="outline">Ver demo</Button>
+            </Link>
           </div>
           <p className="mt-8 text-sm text-[var(--text-secondary)]">
             Funciona com: Instagram · TikTok · YouTube · Kwai

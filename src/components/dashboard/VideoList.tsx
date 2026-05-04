@@ -1,16 +1,38 @@
-import { VideoCard } from "./VideoCard";
+"use client";
 
-const videos = [
-  { title: "Reels sobre lançamento", status: "PRONTO" as const, duration: "2m32s" },
-  { title: "Tutorial de vendas", status: "PROCESSANDO" as const, duration: "8m10s" },
-  { title: "Cortes do podcast", status: "ERRO" as const, duration: "11m00s" },
-];
+import { VideoCard } from "./VideoCard";
+import { useVideos } from "@/hooks/useVideos";
 
 export function VideoList() {
+  const { videos, loading, error } = useVideos();
+
+  if (loading) {
+    return <div className="text-sm text-[var(--text-secondary)]">Carregando vídeos...</div>;
+  }
+
+  if (error) {
+    return <div className="text-sm text-red-400">Erro: {error}</div>;
+  }
+
+  if (videos.length === 0) {
+    return (
+      <div className="text-sm text-[var(--text-secondary)]">
+        Nenhum vídeo ainda.{" "}
+        <a href="/upload" className="text-[var(--primary)] underline">Envie seu primeiro vídeo</a>.
+      </div>
+    );
+  }
+
   return (
     <div className="grid gap-4">
       {videos.map((video) => (
-        <VideoCard key={video.title} {...video} />
+        <VideoCard
+          key={video.id}
+          id={video.id}
+          title={video.title}
+          status={video.status}
+          duration={video.duration}
+        />
       ))}
     </div>
   );

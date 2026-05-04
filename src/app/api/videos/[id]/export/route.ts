@@ -63,29 +63,13 @@ export async function POST(request: Request, { params }: Params) {
   }
 
   if (body.format === "VIDEO") {
-    const queue = getExportQueue();
-    await queue.add(
-      "export-video",
-      { videoId: id, styleId: body.styleId ?? "classic" },
+    return NextResponse.json(
       {
-        attempts: 3,
-        removeOnComplete: true,
-        removeOnFail: false,
+        ok: false,
+        error: "Export manual desabilitado no fluxo automático. Aguarde status READY para baixar o MP4 final.",
       },
+      { status: 409 },
     );
-
-    await prisma.video.update({
-      where: { id },
-      data: { status: "QUEUED" },
-    });
-
-    return NextResponse.json({
-      ok: true,
-      data: {
-        estimatedTimeMinutes: 5,
-        message: "Exportação iniciada",
-      },
-    });
   }
 
   return NextResponse.json({ ok: false, error: "Formato inválido" }, { status: 400 });

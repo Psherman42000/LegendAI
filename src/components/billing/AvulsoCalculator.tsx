@@ -1,11 +1,21 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useAvulsoPrice } from "@/hooks/useAvulsoPrice";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export function AvulsoCalculator({ durationSeconds }: { durationSeconds: number }) {
+export function AvulsoCalculator({ durationSeconds, videoTitle = "Pagamento avulso" }: { durationSeconds: number; videoTitle?: string }) {
+  const router = useRouter();
   const { priceFormatted, isMinimumApplied } = useAvulsoPrice(durationSeconds);
+
+  const handlePixPayment = () => {
+    router.push(`/payment?method=PIX&duration=${durationSeconds}&title=${encodeURIComponent(videoTitle)}`);
+  };
+
+  const handleCardPayment = () => {
+    router.push(`/payment?method=CARD&duration=${durationSeconds}&title=${encodeURIComponent(videoTitle)}`);
+  };
 
   return (
     <Card>
@@ -23,8 +33,8 @@ export function AvulsoCalculator({ durationSeconds }: { durationSeconds: number 
           </p>
         ) : null}
         <div className="flex flex-wrap gap-3">
-          <Button>Pagar com PIX</Button>
-          <Button variant="outline">Pagar com Cartão</Button>
+          <Button onClick={handlePixPayment}>Pagar com PIX</Button>
+          <Button variant="outline" onClick={handleCardPayment}>Pagar com Cartão</Button>
         </div>
       </CardContent>
     </Card>

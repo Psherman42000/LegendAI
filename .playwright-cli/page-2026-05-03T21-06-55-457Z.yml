@@ -1,0 +1,52 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - complementary [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]: LegendaAI
+        - paragraph [ref=e6]: Legenda automática em português brasileiro.
+      - navigation [ref=e7]:
+        - link "Dashboard" [ref=e8] [cursor=pointer]:
+          - /url: /dashboard
+        - link "Upload" [ref=e9] [cursor=pointer]:
+          - /url: /upload
+        - link "Meus Vídeos" [ref=e10] [cursor=pointer]:
+          - /url: /videos
+        - link "Planos" [ref=e11] [cursor=pointer]:
+          - /url: /plans
+        - link "Assinatura" [ref=e12] [cursor=pointer]:
+          - /url: /billing
+        - link "Pagamento Avulso" [ref=e13] [cursor=pointer]:
+          - /url: /payment
+        - link "Configurações" [ref=e14] [cursor=pointer]:
+          - /url: /settings
+      - generic [ref=e15]:
+        - generic [ref=e17]:
+          - generic [ref=e18]: Uso do mês
+          - generic [ref=e19]: 0%
+        - generic [ref=e21]:
+          - generic [ref=e22]: Usuário
+          - paragraph
+          - button "Sair" [ref=e23]
+    - main [ref=e25]:
+      - generic [ref=e26]:
+        - heading "Upload" [level=1] [ref=e27]
+        - paragraph [ref=e28]: Envie um arquivo ou cole uma URL. O processamento acontece no worker, fora da Vercel.
+      - generic [ref=e33]:
+        - generic [ref=e34] [cursor=pointer]:
+          - generic [ref=e35]: Arraste seu vídeo aqui
+          - generic [ref=e36]: mp4, mov, webm ou avi. Até 2GB.
+        - generic [ref=e37]:
+          - textbox "Cole uma URL do YouTube ou TikTok" [ref=e38]
+          - button "Enviar URL" [ref=e39]
+      - generic [ref=e40]:
+        - generic [ref=e41]:
+          - heading "Compra avulsa" [level=3] [ref=e42]
+          - paragraph [ref=e43]: R$ 0,015 por segundo com mínimo de R$ 2,00.
+        - generic [ref=e44]:
+          - generic [ref=e45]: Este vídeo tem 300s · Custo R$ 4,50
+          - generic [ref=e46]:
+            - button "Pagar com PIX" [ref=e47]
+            - button "Pagar com Cartão" [ref=e48]
+  - button "Open Next.js Dev Tools" [ref=e54] [cursor=pointer]:
+    - img [ref=e55]
+  - alert [ref=e58]

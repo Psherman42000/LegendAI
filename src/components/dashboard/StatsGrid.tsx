@@ -1,14 +1,26 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatCurrency } from "@/lib/utils";
 
-const stats = [
-  { label: "Vídeos este mês", value: "12", detail: "3 em processamento" },
-  { label: "Minutos processados", value: "48", detail: "média de 4 min por vídeo" },
-  { label: "Plano atual", value: "Pro", detail: formatCurrency(5900) + "/mês" },
-  { label: "Próxima renovação", value: "18 mai", detail: "renova em 6 dias" },
-];
+export function StatsGrid({
+  videosThisMonth,
+  minutesProcessed,
+  planName,
+  planPrice,
+  nextRenewal,
+}: {
+  videosThisMonth: number;
+  minutesProcessed: number;
+  planName: string;
+  planPrice: number;
+  nextRenewal: string;
+}) {
+  const stats = [
+    { label: "Vídeos este mês", value: String(videosThisMonth), detail: "processados" },
+    { label: "Minutos processados", value: String(minutesProcessed), detail: "total" },
+    { label: "Plano atual", value: planName, detail: formatCurrency(planPrice) + "/mês" },
+    { label: "Próxima renovação", value: nextRenewal, detail: "renovação" },
+  ];
 
-export function StatsGrid() {
   return (
     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
       {stats.map((stat) => (

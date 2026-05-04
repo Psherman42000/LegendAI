@@ -1,0 +1,18 @@
+[    1099ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[    1291ms] [LOG] [HMR] connected @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[    2828ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/user/usage:0
+[    2872ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/user/usage:0
+[    2913ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/user/usage:0
+[    4447ms] [ERROR] Failed to load resource: the server responded with a status of 404 (Not Found) @ http://localhost:3000/icons/192.png:0
+[    4455ms] [WARNING] Error while trying to use the following icon from the Manifest: http://localhost:3000/icons/192.png (Download error or resource isn't a valid image) @ http://localhost:3000/upload:0
+[   10043ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[   10469ms] [LOG] [Fast Refresh] done in 542ms @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[   34616ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[   35624ms] [LOG] [Fast Refresh] done in 1125ms @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[   72691ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[   73059ms] [LOG] [Fast Refresh] done in 470ms @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[   73065ms] [ERROR] Failed to load resource: the server responded with a status of 401 (Unauthorized) @ http://localhost:3000/api/upload:0
+[   98117ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[   98416ms] [LOG] [Fast Refresh] done in 399ms @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[  330003ms] [LOG] [Fast Refresh] rebuilding @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431
+[  330239ms] [LOG] [Fast Refresh] done in 337ms @ http://localhost:3000/_next/static/chunks/0je._next_dist_0832bv7._.js:2431

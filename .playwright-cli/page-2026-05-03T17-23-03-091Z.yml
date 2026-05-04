@@ -1,0 +1,140 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: LegendaAI
+        - heading "Legendas em português BR. Sem erro. Sem dólar." [level=1] [ref=e7]
+        - paragraph [ref=e8]: O CapCut ficou pago. As ferramentas gringas erram no sotaque. O LegendaAI entende como o brasileiro fala.
+        - generic [ref=e9]:
+          - link "Começar grátis" [ref=e10] [cursor=pointer]:
+            - /url: /register
+            - button "Começar grátis" [ref=e11]
+          - button "Ver demo" [ref=e12]
+        - paragraph [ref=e13]: "Funciona com: Instagram · TikTok · YouTube · Kwai"
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]: Upload
+          - generic [ref=e18]: Processando
+        - generic [ref=e20]:
+          - generic [ref=e21]: eu tava pensando... né
+          - generic [ref=e22]: agora ficou certinho
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]: Entende o Português BR
+        - paragraph [ref=e27]: Não confunde 'né' com 'não é'. Não erra Anitta, Flamengo ou Mercado Livre.
+      - generic [ref=e28]:
+        - generic [ref=e29]: Pronto em minutos
+        - paragraph [ref=e30]: Faça upload, receba a transcrição, ajuste e baixe. Sem instalar nada.
+      - generic [ref=e31]:
+        - generic [ref=e32]: Sem assinar em dólar
+        - paragraph [ref=e33]: Pague em reais. PIX aceito. Planos a partir de R$ 29/mês.
+    - table [ref=e36]:
+      - rowgroup [ref=e37]:
+        - row "Feature LegendaAI CapCut Submagic" [ref=e38]:
+          - columnheader "Feature" [ref=e39]
+          - columnheader "LegendaAI" [ref=e40]
+          - columnheader "CapCut" [ref=e41]
+          - columnheader "Submagic" [ref=e42]
+      - rowgroup [ref=e43]:
+        - row "Preço R$ 29/mês R$ 39/mês $20/mês" [ref=e44]:
+          - cell "Preço" [ref=e45]
+          - cell "R$ 29/mês" [ref=e46]
+          - cell "R$ 39/mês" [ref=e47]
+          - cell "$20/mês" [ref=e48]
+        - row "Português BR nativo ✅ ⚠️ ❌" [ref=e49]:
+          - cell "Português BR nativo" [ref=e50]
+          - cell "✅" [ref=e51]
+          - cell "⚠️" [ref=e52]
+          - cell "❌" [ref=e53]
+        - row "PIX / Boleto ✅ ❌ ❌" [ref=e54]:
+          - cell "PIX / Boleto" [ref=e55]
+          - cell "✅" [ref=e56]
+          - cell "❌" [ref=e57]
+          - cell "❌" [ref=e58]
+        - row "Editor inline ✅ ❌ ✅" [ref=e59]:
+          - cell "Editor inline" [ref=e60]
+          - cell "✅" [ref=e61]
+          - cell "❌" [ref=e62]
+          - cell "✅" [ref=e63]
+        - row "Compra avulsa ✅ ❌ ❌" [ref=e64]:
+          - cell "Compra avulsa" [ref=e65]
+          - cell "✅" [ref=e66]
+          - cell "❌" [ref=e67]
+          - cell "❌" [ref=e68]
+    - generic [ref=e70]:
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e75]:
+            - heading "FREE" [level=3] [ref=e76]
+            - paragraph [ref=e77]: R$ 0,00/mês
+          - generic [ref=e78]:
+            - list [ref=e79]:
+              - listitem [ref=e80]: • 5 vídeos por mês
+              - listitem [ref=e81]: • Até 5 minutos por vídeo
+              - listitem [ref=e82]: • Exportação SRT/VTT
+              - listitem [ref=e83]: • Marca d'água nas legendas
+            - button "Selecionar" [ref=e84]
+        - generic [ref=e85]:
+          - generic [ref=e87]:
+            - generic [ref=e88]:
+              - heading "STARTER" [level=3] [ref=e89]
+              - paragraph [ref=e90]: R$ 29,00/mês
+            - generic [ref=e91]: Mais escolhido
+          - generic [ref=e92]:
+            - list [ref=e93]:
+              - listitem [ref=e94]: • 30 vídeos por mês
+              - listitem [ref=e95]: • Até 30 minutos por vídeo
+              - listitem [ref=e96]: • Exportação SRT/VTT + Vídeo
+              - listitem [ref=e97]: • Sem marca d'água
+              - listitem [ref=e98]: • 5 estilos de legenda
+              - listitem [ref=e99]: • Correção automática PT-BR
+            - button "Assinar agora" [ref=e100]
+        - generic [ref=e101]:
+          - generic [ref=e104]:
+            - heading "PRO" [level=3] [ref=e105]
+            - paragraph [ref=e106]: R$ 59,00/mês
+          - generic [ref=e107]:
+            - list [ref=e108]:
+              - listitem [ref=e109]: • 100 vídeos por mês
+              - listitem [ref=e110]: • Até 2 horas por vídeo
+              - listitem [ref=e111]: • Todos os formatos de exportação
+              - listitem [ref=e112]: • Sem marca d'água
+              - listitem [ref=e113]: • Todos os estilos de legenda
+              - listitem [ref=e114]: • Correção IA avançada
+              - listitem [ref=e115]: • Suporte prioritário
+            - button "Selecionar" [ref=e116]
+        - generic [ref=e117]:
+          - generic [ref=e120]:
+            - heading "UNLIMITED" [level=3] [ref=e121]
+            - paragraph [ref=e122]: R$ 99,00/mês
+          - generic [ref=e123]:
+            - list [ref=e124]:
+              - listitem [ref=e125]: • Vídeos ilimitados
+              - listitem [ref=e126]: • Até 4 horas por vídeo
+              - listitem [ref=e127]: • API access (em breve)
+              - listitem [ref=e128]: • Todos os recursos Pro
+              - listitem [ref=e129]: • Suporte VIP
+            - button "Selecionar" [ref=e130]
+      - generic [ref=e131]:
+        - generic [ref=e132]:
+          - heading "Compra avulsa" [level=3] [ref=e133]
+          - paragraph [ref=e134]: R$ 0,015 por segundo com mínimo de R$ 2,00.
+        - generic [ref=e135]:
+          - generic [ref=e136]: Este vídeo tem 600s · Custo R$ 9,00
+          - generic [ref=e137]:
+            - button "Pagar com PIX" [ref=e138]
+            - button "Pagar com Cartão" [ref=e139]
+    - generic [ref=e141]:
+      - paragraph [ref=e142]: “A legenda ficou com cara de corte profissional, e o português parece escrito por quem realmente fala do jeito brasileiro.”
+      - generic [ref=e143]: Criador de conteúdo, São Paulo
+    - generic [ref=e145]:
+      - paragraph [ref=e146]: Feito com 🇧🇷 para criadores brasileiros
+      - generic [ref=e147]:
+        - link "Termos" [ref=e148] [cursor=pointer]:
+          - /url: "#"
+        - link "Privacidade" [ref=e149] [cursor=pointer]:
+          - /url: "#"
+        - link "Contato" [ref=e150] [cursor=pointer]:
+          - /url: "#"
+  - button "Open Next.js Dev Tools" [ref=e156] [cursor=pointer]:
+    - img [ref=e157]

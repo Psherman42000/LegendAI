@@ -80,6 +80,7 @@ export const SUBTITLE_STYLES = {
   },
 } as const;
 
+/** Single formatting source for SRT generation — all SRT output must go through this function */
 export function generateSRT(segments: SubtitleSegment[]): string {
   return segments
     .map((segment, index) => {

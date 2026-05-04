@@ -1,0 +1,9 @@
+- generic [active] [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - heading "Entrar" [level=3] [ref=e5]
+        - paragraph [ref=e6]: Use sua conta Google para acessar o LegendaAI.
+      - button "Continuar com Google" [ref=e8]
+  - button "Open Next.js Dev Tools" [ref=e14] [cursor=pointer]:
+    - img [ref=e15]

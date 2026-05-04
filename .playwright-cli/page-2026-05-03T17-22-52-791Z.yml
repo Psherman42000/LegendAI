@@ -1,0 +1,13 @@
+- generic [ref=e1]:
+  - button "Open Next.js Dev Tools" [ref=e156] [cursor=pointer]:
+    - img [ref=e157]
+  - alert [ref=e160]
+  - main [ref=e161]:
+    - generic [ref=e162]:
+      - generic [ref=e163]:
+        - heading "Criar conta" [level=3] [ref=e164]
+        - paragraph [ref=e165]: Cadastre-se para gerar legendas automaticamente.
+      - generic [ref=e166]:
+        - textbox "Nome completo" [ref=e167]
+        - textbox "seu@email.com" [ref=e168]
+        - button "Criar conta com Google" [active] [ref=e169]
