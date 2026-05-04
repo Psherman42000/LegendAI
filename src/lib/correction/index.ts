@@ -1,15 +1,15 @@
 import type { TranscriptionSegment } from "@/types/subtitle";
-import { correctWithOpenAI } from "./openai";
+import { correctWithOpenCode } from "./opencode";
 
 export async function correctTranscription(
   segments: TranscriptionSegment[],
   useAiCorrection: boolean = false
 ): Promise<TranscriptionSegment[]> {
-  console.log(`[Correction] Using OpenAI strategy`);
+  console.log(`[Correction] Using OpenCode strategy`);
   try {
-    return await correctWithOpenAI(segments);
+    return await correctWithOpenCode(segments);
   } catch (error) {
-    console.error(`[Correction] OpenAI Strategy failed:`, error);
+    console.error(`[Correction] OpenCode Strategy failed:`, error);
     return segments;
   }
 }
