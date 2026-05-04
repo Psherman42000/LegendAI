@@ -20,14 +20,26 @@ export function useUpload() {
     setProgress(10);
 
     try {
-      // Create video record via API
-      const objectUrl = URL.createObjectURL(file);
+      const formData = new FormData();
+      formData.append("file", file);
+      setProgress(30);
+
+      const uploadRes = await fetch("/api/upload", { method: "POST", body: formData });
+
+      if (!uploadRes.ok) {
+        const errData = await uploadRes.json().catch(() => null);
+        throw new Error(errData?.error ?? "Falha no upload");
+      }
+
+      const uploadData = await uploadRes.json();
+      setProgress(60);
+
       const response = await fetch("/api/videos", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: file.name,
-          originalUrl: objectUrl,
+          originalUrl: uploadData.data.url,
           duration: 0, // Will be detected server-side
           fileSize: file.size,
           mimeType: file.type,
@@ -43,7 +55,7 @@ export function useUpload() {
       const data = await response.json();
       const result = {
         id: data.data.videoId,
-        url: objectUrl,
+        url: uploadData.data.url,
         title: file.name,
         duration: 0,
       };
