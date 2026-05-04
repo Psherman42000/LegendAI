@@ -42,6 +42,10 @@ $RedisCli  = "$RedisDir\redis-cli.exe"
 $WhisperDir = "$PSScriptRoot\whisper-api"
 $ProjectDir = $PSScriptRoot
 $PidFile    = "$ProjectDir\.dev-services.json"
+$LogDir     = "$ProjectDir\logs"
+
+# Ensure log directory exists
+if (-not (Test-Path $LogDir)) { New-Item -ItemType Directory -Path $LogDir -Force | Out-Null }
 
 # Add tool directories to PATH for this session
 $env:Path = "$PgDir;$RedisDir;$env:Path"
@@ -310,8 +314,8 @@ if ($SkipOpenCode) {
   Write-Status "OpenCode" $true "already running on port 4096"
 } else {
   try {
-    $opencodeLogOut = "$ProjectDir\.next\opencode-out.log"
-    $opencodeLogErr = "$ProjectDir\.next\opencode-err.log"
+    $opencodeLogOut = "$LogDir\opencode-out.log"
+    $opencodeLogErr = "$LogDir\opencode-err.log"
     $opencodeProc = Start-Process -FilePath "cmd.exe" `
       -ArgumentList "/c", "npx opencode serve --port 4096" `
       -WorkingDirectory $ProjectDir `
@@ -340,8 +344,8 @@ if ($existing.nextjs -and (Get-Process -Id $existing.nextjs -ErrorAction Silentl
   $activePids.nextjs = $existing.nextjs
 } else {
   try {
-    $nextLogOut = "$ProjectDir\.next\dev-server-out.log"
-    $nextLogErr = "$ProjectDir\.next\dev-server-err.log"
+    $nextLogOut = "$LogDir\dev-server-out.log"
+    $nextLogErr = "$LogDir\dev-server-err.log"
     $nextProc = Start-Process -FilePath "npx.cmd" `
       -ArgumentList "next", "dev" `
       -WorkingDirectory $ProjectDir `
@@ -368,8 +372,8 @@ if ($existing.worker -and (Get-Process -Id $existing.worker -ErrorAction Silentl
   $activePids.worker = $existing.worker
 } else {
   try {
-    $workerLogOut = "$ProjectDir\.next\worker-out.log"
-    $workerLogErr = "$ProjectDir\.next\worker-err.log"
+    $workerLogOut = "$LogDir\worker-out.log"
+    $workerLogErr = "$LogDir\worker-err.log"
     $envFile = "$ProjectDir\.env.local"
     $workerProc = Start-Process -FilePath "npx.cmd" `
       -ArgumentList "tsx", "--env-file=`"$envFile`"", "--watch", "src/workers/videoProcessor.ts" `
