@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getToken } from "next-auth/jwt";
 
 const windowMs = 60_000;
 const maxRequests = 10;
 const buckets = new Map<string, { count: number; resetAt: number }>();
-const AUTH_SECRET = process.env.NEXTAUTH_SECRET;
 
 // Periodic cleanup of expired rate-limit entries
 setInterval(() => {
@@ -54,19 +52,6 @@ export async function middleware(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ?? request.headers.get("x-real-ip") ?? "unknown";
   const rateLimitResponse = rateLimit(ip);
   if (rateLimitResponse) return rateLimitResponse;
-
-  try {
-    const token = await getToken({ req: request, secret: AUTH_SECRET });
-    if (!token) {
-      const loginUrl = new URL("/login", request.url);
-      loginUrl.searchParams.set("callbackUrl", request.url);
-      return NextResponse.redirect(loginUrl);
-    }
-  } catch {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("callbackUrl", request.url);
-    return NextResponse.redirect(loginUrl);
-  }
 
   return NextResponse.next();
 }

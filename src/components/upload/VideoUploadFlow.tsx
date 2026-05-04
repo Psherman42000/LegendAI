@@ -27,7 +27,9 @@ const PROCESSING_STEPS: ProcessingStep[] = [
 
 export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: VideoUploadFlowProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
   const [video, setVideo] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
 
@@ -81,7 +83,23 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
     setIsProcessing(true);
     setCurrentStep(0);
     setProgress(0);
+    setError(null);
     fetchVideoStatus();
+  };
+
+  const handleRetry = async () => {
+    setIsRetrying(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/videos/${videoId}/retry`, { method: "POST" });
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error ?? "Erro ao reprocessar");
+      handleStartProcessing();
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : "Erro ao reprocessar");
+    } finally {
+      setIsRetrying(false);
+    }
   };
 
   const isReady = video?.status === "READY";
@@ -190,31 +208,50 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
                   Editar legendas
                 </Button>
               </Link>
-              {video?.transcription?.srtUrl && (
-                <a href={video.transcription.srtUrl} download className="flex-1">
+              {video?.processedUrl && (
+                <a href={video.processedUrl} download className="flex-1">
                   <Button variant="outline" className="w-full">
                     <svg className="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                     </svg>
-                    Baixar SRT
+                    Baixar MP4
                   </Button>
                 </a>
               )}
             </div>
+            {video?.srtUrl && (
+              <a href={video.srtUrl} download className="block text-center">
+                <Button variant="ghost" className="text-xs text-[var(--text-secondary)]">
+                  <svg className="mr-1 size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                  </svg>
+                  Baixar SRT
+                </Button>
+              </a>
+            )}
           </div>
         )}
 
         {/* Error State */}
         {isError && (
-          <div className="rounded-lg bg-red-500/10 px-4 py-3 text-center">
-            <p className="text-red-400">Erro no processamento. Tente novamente.</p>
+          <div className="space-y-3">
+            <div className="rounded-lg bg-red-500/10 px-4 py-3 text-center">
+              <p className="text-red-400">Erro no processamento.</p>
+              {video?.errorMessage && (
+                <p className="mt-1 text-xs text-red-400/70">{video.errorMessage}</p>
+              )}
+            </div>
             <Button
               variant="outline"
-              onClick={handleStartProcessing}
-              className="mt-2"
+              onClick={handleRetry}
+              disabled={isRetrying}
+              className="w-full"
             >
-              Tentar novamente
+              {isRetrying ? "Reenfileirando..." : "Tentar novamente"}
             </Button>
+            {error && (
+              <p className="text-center text-sm text-red-400">{error}</p>
+            )}
           </div>
         )}
       </CardContent>
