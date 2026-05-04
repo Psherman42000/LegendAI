@@ -8,13 +8,19 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function GET(_request: Request, { params }: Params) {
   const session = await getServerSession(authOptions);
-  if (!session?.user?.id) {
+
+  let userId = session?.user?.id;
+  if (!userId && process.env.NODE_ENV === "development") {
+    userId = "dev-user";
+  }
+
+  if (!userId) {
     return NextResponse.json({ ok: false, error: "Não autenticado" }, { status: 401 });
   }
 
   const { id } = await params;
   const video = await prisma.video.findFirst({
-    where: { id, userId: session.user.id },
+    where: { id, userId },
     include: { transcription: true, payment: true },
   });
 
