@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 
 export function Header({
   title,
@@ -17,8 +16,11 @@ export function Header({
         <p className="mt-2 text-sm text-[var(--text-secondary)]">{description}</p>
       </div>
       {showUploadButton && (
-        <Link href="/upload">
-          <Button>Upload novo vídeo</Button>
+        <Link
+          href="/upload"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-black shadow-[0_0_0_1px_rgba(170,255,0,0.12),0_12px_40px_rgba(170,255,0,0.12)] transition-all duration-200 hover:translate-y-[-1px]"
+        >
+          Upload novo vídeo
         </Link>
       )}
     </div>
