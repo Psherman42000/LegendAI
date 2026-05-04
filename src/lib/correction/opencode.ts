@@ -26,7 +26,7 @@ Retorne JSON com a mesma estrutura dos segmentos de entrada, apenas com os texto
 function getModel(modelString: string) {
   const parts = modelString.split("/");
   if (parts.length < 2) {
-    throw new Error(\`Invalid model format: \${modelString}. Expected providerID/modelID\`);
+    throw new Error(`Invalid model format: ${modelString}. Expected providerID/modelID`);
   }
   return {
     providerID: parts[0],
@@ -51,47 +51,55 @@ function isValidTranscriptionResponse(data: unknown): data is TranscriptionSegme
 export async function correctWithOpenCode(
   segments: TranscriptionSegment[]
 ): Promise<TranscriptionSegment[]> {
-  let session;
+  let sessionId: string | undefined;
   try {
-    session = await opencodeClient.session.create({
+    const { data: session, error: createError } = await opencodeClient.session.create({});
+    if (createError || !session) {
+      throw new Error("Failed to create OpenCode session");
+    }
+    sessionId = session.id;
+
+    const { data: response, error: promptError } = await opencodeClient.session.prompt({
+      path: { id: sessionId },
       body: {
         agent: "general",
         model: getModel(MODEL),
-        prompt: SYSTEM_PROMPT,
+        system: SYSTEM_PROMPT,
+        parts: [{ type: "text", text: JSON.stringify(segments) }],
       },
     });
 
-    const response = await session.prompt({
-      body: {
-        prompt: JSON.stringify(segments),
-      },
-    });
+    if (promptError || !response) {
+      throw new Error("Failed to prompt OpenCode session");
+    }
 
-    const rawText = response.text?.trim();
+    const textParts = response.parts.filter((p: any) => p.type === "text");
+    const rawText = textParts.map((p: any) => p.text).join("").trim();
+    
     if (!rawText) {
       console.warn("[Correction] OpenCode returned empty response");
-      return segments;
+      throw new Error("OpenCode returned empty response");
     }
 
     // Extract JSON from markdown code blocks if present
-    const jsonMatch = rawText.match(/\`\`\`(?:json)?\s*([\s\S]*?)\s*\`\`\`/);
+    const jsonMatch = rawText.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
     const jsonString = jsonMatch ? jsonMatch[1] : rawText;
 
     const parsed = JSON.parse(jsonString);
     
     if (!isValidTranscriptionResponse(parsed)) {
       console.warn("[Correction] OpenCode returned invalid segment structure");
-      return segments;
+      throw new Error("Invalid segment structure returned from OpenCode");
     }
 
     return parsed;
   } catch (error) {
     console.error("[Correction] OpenCode correction failed:", error);
-    return segments;
+    throw error;
   } finally {
-    if (session) {
+    if (sessionId) {
       try {
-        await session.delete();
+        await opencodeClient.session.delete({ path: { id: sessionId } });
       } catch (cleanupError) {
         console.error("[Correction] Failed to cleanup OpenCode session:", cleanupError);
       }
