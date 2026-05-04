@@ -1,17 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
-
-const display = Space_Grotesk({
-  subsets: ["latin"],
-  variable: "--font-display",
-});
-
-const body = Inter({
-  subsets: ["latin"],
-  variable: "--font-body",
-});
 
 export const metadata: Metadata = {
   title: "LegendaAI",
@@ -38,7 +27,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
-      className={`${display.variable} ${body.variable} h-full antialiased`}
+      className="h-full antialiased"
     >
       <body className="min-h-screen bg-background text-foreground">
         <NextAuthProvider>{children}</NextAuthProvider>

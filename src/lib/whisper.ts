@@ -30,6 +30,13 @@ interface WhisperJsonOutput {
   }>;
 }
 
+type OpenAIWordTimestamp = {
+  word: string;
+  start: number;
+  end: number;
+  probability?: number;
+};
+
 function normalizeSegments(segments: WhisperJsonOutput["segments"]): TranscriptionSegment[] {
   return segments.map((seg) => ({
     id: `segment-${seg.id}`,
@@ -205,18 +212,22 @@ async function transcribeWithOpenAI(audioPath: string): Promise<WhisperApiRespon
   });
 
   const segments =
-    response.segments?.map((seg, idx) => ({
-      id: `segment-${idx}`,
-      start: seg.start,
-      end: seg.end,
-      text: seg.text.trim(),
-      words: seg.words?.map((w) => ({
-        word: w.word,
-        start: w.start,
-        end: w.end,
-        confidence: (w as { probability?: number }).probability,
-      })),
-    })) ?? [];
+    response.segments?.map((seg, idx) => {
+      const segmentWithWords = seg as typeof seg & { words?: OpenAIWordTimestamp[] };
+
+      return {
+        id: `segment-${idx}`,
+        start: seg.start,
+        end: seg.end,
+        text: seg.text.trim(),
+        words: segmentWithWords.words?.map((w) => ({
+          word: w.word,
+          start: w.start,
+          end: w.end,
+          confidence: w.probability,
+        })),
+      };
+    }) ?? [];
 
   return {
     rawText: response.text.trim(),
