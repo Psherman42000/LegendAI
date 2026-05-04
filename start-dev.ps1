@@ -312,8 +312,8 @@ if ($SkipOpenCode) {
   try {
     $opencodeLogOut = "$ProjectDir\.next\opencode-out.log"
     $opencodeLogErr = "$ProjectDir\.next\opencode-err.log"
-    $opencodeProc = Start-Process -FilePath "opencode.cmd" `
-      -ArgumentList "serve", "--port", "4096" `
+    $opencodeProc = Start-Process -FilePath "cmd.exe" `
+      -ArgumentList "/c", "npx opencode serve --port 4096" `
       -WorkingDirectory $ProjectDir `
       -WindowStyle Hidden -PassThru `
       -RedirectStandardOutput $opencodeLogOut -RedirectStandardError $opencodeLogErr
