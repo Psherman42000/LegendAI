@@ -45,7 +45,8 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     await writeFile(filePath, Buffer.from(bytes));
 
-    const url = `/uploads/${fileName}`;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `http://localhost:${process.env.PORT ?? 3000}`;
+    const url = `${baseUrl}/uploads/${fileName}`;
     return NextResponse.json({ ok: true, url });
   } catch (error) {
     console.error("Upload error:", error);
