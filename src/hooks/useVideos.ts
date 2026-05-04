@@ -6,7 +6,7 @@ export type VideoItem = {
   id: string;
   title: string;
   status: string;
-  duration: string;
+  duration: number | null;
   createdAt: string;
 };
 

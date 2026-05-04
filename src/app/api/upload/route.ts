@@ -42,7 +42,7 @@ export async function POST(request: Request) {
       const buffer = new Uint8Array(await file.arrayBuffer());
       const rawUrl = await uploadBufferToR2(buffer, key, file.type || "application/octet-stream");
       const r2Key = extractR2Key(rawUrl);
-      const presignedUrl = await getPublicUrl(r2Key);
+      const presignedUrl = await getPublicUrl(r2Key, 24 * 60 * 60);
       return NextResponse.json({ ok: true, url: presignedUrl });
     }
 

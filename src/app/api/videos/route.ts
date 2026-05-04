@@ -78,10 +78,11 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("[api/videos GET]", error);
     return NextResponse.json({
-      ok: true,
+      ok: false,
+      error: "Erro ao carregar vídeos",
       data: [],
       pagination: { total: 0, page: 1, limit, totalPages: 0 },
-    });
+    }, { status: 500 });
   }
 }
 

@@ -224,6 +224,7 @@ export async function runWorker(): Promise<void> {
     }
     if (activeJobs <= 0) {
       idleTimer = setTimeout(async () => {
+        if (activeJobs > 0) return;
         console.log(`[Worker] No jobs for ${WORKER_IDLE_TIMEOUT_MS}ms — shutting down`);
         await w.close();
         process.exit(0);

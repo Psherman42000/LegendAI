@@ -102,7 +102,7 @@ function ClientFetchedVideoList() {
   const { videos, loading, error } = useVideos();
   const normalizedVideos: VideoItem[] = videos.map((video) => ({
     ...video,
-    duration: Number.parseInt(video.duration, 10) || null,
+    duration: video.duration,
   }));
 
   return (
