@@ -51,12 +51,9 @@ R2_PUBLIC_URL=https://pub-xxx.r2.dev # Opcional, o sistema gera URLs pré-assina
 
 **Correção de Legendas (IA):**
 ```env
-# Estratégia de IA (quando o usuário ativa "Corrigir pontuação com IA")
-# Opções: local_llm (roda na CPU), openai (nuvem)
-AI_CORRECTION_STRATEGY=local_llm
-
-# URL do modelo GGUF para rodar localmente (recomendado: Qwen2.5-1.5B-Instruct)
-LOCAL_LLM_MODEL_URL=https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf
+# Configuração do OpenCode SDK para correção de pontuação e gramática
+OPENCODE_BASE_URL=http://127.0.0.1:4096
+OPENCODE_MODEL=opencode-go/deepseek-v4-flash
 ```
 
 ### Rodando o Ambiente de Desenvolvimento
@@ -88,7 +85,6 @@ READY means both files exist:
 
 ### Estratégias de Correção de Legenda
 
-O pipeline possui um sistema de fallback para correção de pontuação e gramática:
-1. **WinkNLP (Padrão):** Rápido, roda localmente, aplica regras básicas de capitalização.
-2. **Local LLM (`node-llama-cpp`):** Roda um modelo GGUF (ex: Qwen 1.5B) na CPU do servidor. Excelente qualidade em PT-BR sem custos de API.
-3. **OpenAI:** Usa GPT-4o-mini via API.
+O pipeline utiliza o **OpenCode SDK** para correção de pontuação e gramática:
+- **OpenCode SDK:** Usa o modelo configurado em `OPENCODE_MODEL` (ex: `opencode-go/deepseek-v4-flash`) via API local ou remota do OpenCode. Excelente qualidade em PT-BR mantendo o estilo coloquial.
+- **Fallback:** Caso a correção via IA falhe, o sistema retorna os segmentos originais gerados pelo Whisper para garantir que o pipeline não seja interrompido.
