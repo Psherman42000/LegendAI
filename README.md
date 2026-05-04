@@ -33,11 +33,44 @@ npm run db:seed
 - `src/workers` - processamento de vídeo fora da Vercel
 - `prisma` - schema e seed
 
-## Observações
+## Configuração e Setup Local
 
-- O build foi validado localmente com `npm run build`.
-- O worker de vídeo foi desenhado para rodar fora da Vercel.
-- `src/app/api/README.md` documenta a API para consumo futuro pelo app mobile.
+### Variáveis de Ambiente (.env.local)
+
+Além das variáveis padrão de banco de dados e NextAuth, configure:
+
+**Cloudflare R2 (Storage):**
+```env
+R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
+R2_ACCESS_KEY_ID=your_access_key
+R2_SECRET_ACCESS_KEY=your_secret_key
+R2_BUCKET_NAME=your_bucket_name
+R2_PUBLIC_URL=https://pub-xxx.r2.dev # Opcional, o sistema gera URLs pré-assinadas se for privado
+```
+*Nota: Em ambiente de desenvolvimento, se as variáveis do R2 não estiverem presentes, o sistema fará fallback automático para salvar uploads no disco local (`public/uploads/`).*
+
+**Correção de Legendas (IA):**
+```env
+# Estratégia de IA (quando o usuário ativa "Corrigir pontuação com IA")
+# Opções: local_llm (roda na CPU), openai (nuvem)
+AI_CORRECTION_STRATEGY=local_llm
+
+# URL do modelo GGUF para rodar localmente (recomendado: Qwen2.5-1.5B-Instruct)
+LOCAL_LLM_MODEL_URL=https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf
+```
+
+### Rodando o Ambiente de Desenvolvimento
+
+Para iniciar tanto o servidor Next.js quanto o Worker do BullMQ simultaneamente no Windows, utilize o script PowerShell:
+
+```powershell
+.\start-dev.ps1
+```
+Este script gerencia os processos e salva os logs separadamente na pasta `.next/` (`next.out.log`, `worker.out.log`, etc).
+
+### Usuário de Teste (Dev)
+
+Em ambiente de desenvolvimento (`NODE_ENV === "development"`), as rotas de API de vídeo fazem fallback para um usuário de teste chamado `dev-user` caso você não esteja autenticado. Certifique-se de criar este usuário no banco de dados para testar o fluxo de upload sem precisar fazer login.
 
 ## Auto Burn Pipeline (Production)
 
@@ -52,3 +85,10 @@ Required services:
 READY means both files exist:
 - `processedUrl` (burnt MP4)
 - `srtUrl` (subtitle file)
+
+### Estratégias de Correção de Legenda
+
+O pipeline possui um sistema de fallback para correção de pontuação e gramática:
+1. **WinkNLP (Padrão):** Rápido, roda localmente, aplica regras básicas de capitalização.
+2. **Local LLM (`node-llama-cpp`):** Roda um modelo GGUF (ex: Qwen 1.5B) na CPU do servidor. Excelente qualidade em PT-BR sem custos de API.
+3. **OpenAI:** Usa GPT-4o-mini via API.
