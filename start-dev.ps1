@@ -1,14 +1,18 @@
 <#
 .SYNOPSIS
-  Starts all development services for LegendaAI.
+  Starts or stops all development services for LegendaAI with PID tracking.
 .DESCRIPTION
-  Launches PostgreSQL, Redis, optionally Whisper API, Next.js dev server,
-  and the background worker - each with status checks and color-coded output.
+  Manages PostgreSQL, Redis, Whisper API, Next.js dev server, background worker,
+  and OpenCode server - each with status checks and color-coded output.
+  Tracks PIDs in .dev-services.json for reliable shutdown.
 .PARAMETER SkipWhisper
   Skips starting the Whisper API service.
+.PARAMETER Stop
+  Stops all tracked services.
 .EXAMPLE
   .\start-dev.ps1
   .\start-dev.ps1 -SkipWhisper
+  .\start-dev.ps1 -Stop
 #>
 
 param(
@@ -37,6 +41,7 @@ $RedisExe  = "$RedisDir\redis-server.exe"
 $RedisCli  = "$RedisDir\redis-cli.exe"
 $WhisperDir = "$PSScriptRoot\whisper-api"
 $ProjectDir = $PSScriptRoot
+$PidFile    = "$ProjectDir\.dev-services.json"
 
 # Add tool directories to PATH for this session
 $env:Path = "$PgDir;$RedisDir;$env:Path"
@@ -56,43 +61,135 @@ function Test-Port {
   catch { $false }
 }
 
+function Get-TrackedPids {
+  if (Test-Path $PidFile) {
+    try { return Get-Content $PidFile -Raw | ConvertFrom-Json -AsHashtable }
+    catch { return @{} }
+  }
+  return @{}
+}
+
+function Save-TrackedPids {
+  param([hashtable]$Pids)
+  $Pids | ConvertTo-Json | Set-Content $PidFile -Force
+}
+
+function Remove-TrackedPids {
+  if (Test-Path $PidFile) { Remove-Item $PidFile -Force }
+}
+
+function Stop-ProcessByPid {
+  param([int]$Pid, [string]$Name)
+  try {
+    $proc = Get-Process -Id $Pid -ErrorAction SilentlyContinue
+    if ($proc) {
+      Stop-Process -Id $Pid -Force -ErrorAction SilentlyContinue
+      # Wait up to 5 seconds for process to exit
+      $timeout = 0
+      while ((Get-Process -Id $Pid -ErrorAction SilentlyContinue) -and $timeout -lt 50) {
+        Start-Sleep -Milliseconds 100
+        $timeout++
+      }
+      return $true
+    }
+    return $false
+  }
+  catch { return $false }
+}
+
 # ===================================================================
 #  Stop-DevServices - clean shutdown
 # ===================================================================
 function Stop-DevServices {
   Write-Host "`nShutting down LegendaAI services..." -ForegroundColor Magenta
 
-  # Next.js + Worker (node processes)
-  Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object {
-    $_.CommandLine -match "next dev|tsx.*worker"
-  } | Stop-Process -Force -ErrorAction SilentlyContinue
-  Write-Status "Node processes" $true "stopped"
+  $tracked = Get-TrackedPids
+  $anyStopped = $false
 
-  # Whisper API (uvicorn)
-  Get-Process -Name "uvicorn" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-  Write-Status "Whisper API" $true "stopped"
+  # Stop tracked Node processes (Next.js, Worker)
+  if ($tracked.nextjs) {
+    $stopped = Stop-ProcessByPid -Pid $tracked.nextjs -Name "Next.js"
+    if ($stopped) { Write-Status "Next.js" $true "stopped (PID $($tracked.nextjs))"; $anyStopped = $true }
+    else { Write-Status "Next.js" $false "not running or already stopped" }
+  }
+  if ($tracked.worker) {
+    $stopped = Stop-ProcessByPid -Pid $tracked.worker -Name "Worker"
+    if ($stopped) { Write-Status "Worker" $true "stopped (PID $($tracked.worker))"; $anyStopped = $true }
+    else { Write-Status "Worker" $false "not running or already stopped" }
+  }
 
-  # OpenCode server
-  Get-Process -Name "opencode" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
-  Write-Status "OpenCode" $true "stopped"
+  # Stop tracked Whisper API (uvicorn)
+  if ($tracked.whisper) {
+    $stopped = Stop-ProcessByPid -Pid $tracked.whisper -Name "Whisper API"
+    if ($stopped) { Write-Status "Whisper API" $true "stopped (PID $($tracked.whisper))"; $anyStopped = $true }
+    else { Write-Status "Whisper API" $false "not running or already stopped" }
+  }
+
+  # Stop tracked OpenCode server
+  if ($tracked.opencode) {
+    $stopped = Stop-ProcessByPid -Pid $tracked.opencode -Name "OpenCode"
+    if ($stopped) { Write-Status "OpenCode" $true "stopped (PID $($tracked.opencode))"; $anyStopped = $true }
+    else { Write-Status "OpenCode" $false "not running or already stopped" }
+  }
+
+  # Kill any remaining opencode/node processes by port (fallback)
+  if (Test-Port -Port 4096) {
+    $proc = Get-NetTCPConnection -LocalPort 4096 -ErrorAction SilentlyContinue | Select-Object -First 1
+    if ($proc -and $proc.OwningProcess) {
+      Stop-Process -Id $proc.OwningProcess -Force -ErrorAction SilentlyContinue
+      Write-Status "OpenCode (port fallback)" $true "killed process on port 4096"
+      $anyStopped = $true
+    }
+  }
 
   # Redis
   try {
     & $RedisCli shutdown 2>$null
-    Write-Status "Redis" $true "stopped"
+    Start-Sleep -Seconds 2
+    if (-not (Test-Port -Port 6379)) {
+      Write-Status "Redis" $true "stopped"
+      $anyStopped = $true
+    } else {
+      # Force kill if graceful shutdown failed
+      $tracked.redis = Get-NetTCPConnection -LocalPort 6379 -ErrorAction SilentlyContinue | Select-Object -ExpandProperty OwningProcess
+      if ($tracked.redis) {
+        Stop-Process -Id $tracked.redis -Force -ErrorAction SilentlyContinue
+        Write-Status "Redis" $true "force stopped"
+        $anyStopped = $true
+      }
+    }
   } catch {
-    Write-Status "Redis" $false "could not stop Redis"
+    Write-Status "Redis" $false "could not stop: $_"
   }
 
   # PostgreSQL
   try {
     & $PgCtl stop -D "$PgData" -m fast 2>$null
+    Start-Sleep -Seconds 2
     Write-Status "PostgreSQL" $true "stopped"
+    $anyStopped = $true
   } catch {
-    Write-Status "PostgreSQL" $false "could not stop PostgreSQL"
+    Write-Status "PostgreSQL" $false "could not stop: $_"
   }
 
-  Write-Host "`nAll services stopped.`n" -ForegroundColor Magenta
+  # Cleanup PID file
+  Remove-TrackedPids
+
+  # Final check for orphaned processes
+  $orphanedNode = Get-Process -Name "node" -ErrorAction SilentlyContinue | Where-Object {
+    $_.CommandLine -match "next dev|tsx.*worker|opencode" -or $_.Parent.Id -eq 1
+  }
+  if ($orphanedNode) {
+    Write-Host "`n[WARN] Found orphaned Node processes:" -ForegroundColor Yellow
+    $orphanedNode | ForEach-Object { Write-Host "  PID $($_.Id): $($_.CommandLine.Substring(0, [Math]::Min(80, $_.CommandLine.Length)))..." -ForegroundColor DarkGray }
+    Write-Host "Run 'taskkill /F /IM node.exe' to clean up if needed." -ForegroundColor DarkGray
+  }
+
+  if ($anyStopped) {
+    Write-Host "`nAll services stopped.`n" -ForegroundColor Magenta
+  } else {
+    Write-Host "`nNo active services found.`n" -ForegroundColor Magenta
+  }
 }
 
 if ($Stop) {
@@ -103,14 +200,12 @@ if ($Stop) {
 # -- Pre-checks -----------------------------------------------------
 Write-Host "`n========== LegendaAI - Development Startup ==========`n" -ForegroundColor Cyan
 
-# Ensure project directory exists
-if (-not (Test-Path $ProjectDir)) {
-  Write-Status "Project directory" $false "$ProjectDir not found"
-  exit 1
-}
+# Load existing PIDs to avoid duplicates
+$existing = Get-TrackedPids
+$activePids = @{}
 
 # -- 1. PostgreSQL --------------------------------------------------
-Write-Host "[1/5] PostgreSQL" -ForegroundColor Yellow
+Write-Host "[1/6] PostgreSQL" -ForegroundColor Yellow
 
 $pgRunning = $false
 try {
@@ -125,7 +220,7 @@ if ($pgRunning) {
     $pgLog = "$PgData\start-dev.log"
     $pgOut = "$PgData\start-dev.out.log"
     $pgErr = "$PgData\start-dev.err.log"
-    $proc = Start-Process -FilePath $PgCtl -ArgumentList "start -D `"$PgData`" -l `"$pgLog`"" -WindowStyle Hidden -PassThru -RedirectStandardOutput $pgOut -RedirectStandardError $pgErr
+    $pgProc = Start-Process -FilePath $PgCtl -ArgumentList "start -D `"$PgData`" -l `"$pgLog`"" -WindowStyle Hidden -PassThru -RedirectStandardOutput $pgOut -RedirectStandardError $pgErr
     Start-Sleep -Seconds 5
     $pgRunning = (& $PgCtl status -D $PgData 2>$null) -and $LASTEXITCODE -eq 0
     if ($pgRunning) { Write-Status "PostgreSQL" $true "started" }
@@ -137,7 +232,7 @@ if ($pgRunning) {
 }
 
 # -- 2. Redis -------------------------------------------------------
-Write-Host "[2/5] Redis" -ForegroundColor Yellow
+Write-Host "[2/6] Redis" -ForegroundColor Yellow
 
 $redisRunning = $false
 try {
@@ -149,18 +244,24 @@ if ($redisRunning) {
   Write-Status "Redis" $true "already running"
 } else {
   try {
-    $proc = Start-Process -FilePath $RedisExe -WindowStyle Hidden -PassThru
+    $redisProc = Start-Process -FilePath $RedisExe -WindowStyle Hidden -PassThru
     Start-Sleep -Seconds 3
     $redisPing = & $RedisCli ping 2>$null
-    if ($redisPing -eq "PONG") { Write-Status "Redis" $true "started" }
-    else                        { Write-Status "Redis" $false "failed to start" }
+    if ($redisPing -eq "PONG") {
+      Write-Status "Redis" $true "started (PID $($redisProc.Id))"
+      $activePids.redis = $redisProc.Id
+    }
+    else {
+      Write-Status "Redis" $false "failed to start"
+      if ($redisProc) { Stop-Process -Id $redisProc.Id -Force -ErrorAction SilentlyContinue }
+    }
   }
   catch {
     Write-Status "Redis" $false $_.Exception.Message
   }
 }
 
-# Wait for databases to be ready before launching apps
+# Wait for databases before launching apps
 Write-Host "`nWaiting 3 seconds for services to stabilise..." -ForegroundColor DarkGray
 Start-Sleep -Seconds 3
 
@@ -178,13 +279,19 @@ if ($SkipWhisper) {
 } else {
   try {
     $logFile = "$WhisperDir\uvicorn.log"
-    $proc = Start-Process -FilePath "uvicorn" `
+    $whisperProc = Start-Process -FilePath "uvicorn" `
       -ArgumentList "main:app --host 0.0.0.0 --port 8000" `
       -WorkingDirectory $WhisperDir `
       -NoNewWindow -PassThru -RedirectStandardOutput $logFile -RedirectStandardError $logFile
     Start-Sleep -Seconds 2
-    if (Test-Port -Port 8000) { Write-Status "Whisper API" $true "started on port 8000" }
-    else                       { Write-Status "Whisper API" $false "check $logFile for details" }
+    if (Test-Port -Port 8000) {
+      Write-Status "Whisper API" $true "started on port 8000 (PID $($whisperProc.Id))"
+      $activePids.whisper = $whisperProc.Id
+    }
+    else {
+      Write-Status "Whisper API" $false "check $logFile for details"
+      if ($whisperProc) { Stop-Process -Id $whisperProc.Id -Force -ErrorAction SilentlyContinue }
+    }
   }
   catch {
     Write-Status "Whisper API" $false $_.Exception.Message
@@ -203,14 +310,20 @@ if ($SkipOpenCode) {
 } else {
   try {
     $opencodeLog = "$ProjectDir\.next\opencode.log"
-    $proc = Start-Process -FilePath "opencode" `
+    $opencodeProc = Start-Process -FilePath "opencode" `
       -ArgumentList "server", "--port", "4096" `
       -WorkingDirectory $ProjectDir `
       -WindowStyle Hidden -PassThru `
       -RedirectStandardOutput $opencodeLog -RedirectStandardError $opencodeLog
     Start-Sleep -Seconds 3
-    if (Test-Port -Port 4096) { Write-Status "OpenCode" $true "started on port 4096" }
-    else                       { Write-Status "OpenCode" $false "check $opencodeLog for details" }
+    if (Test-Port -Port 4096) {
+      Write-Status "OpenCode" $true "started on port 4096 (PID $($opencodeProc.Id))"
+      $activePids.opencode = $opencodeProc.Id
+    }
+    else {
+      Write-Status "OpenCode" $false "check $opencodeLog for details"
+      if ($opencodeProc) { Stop-Process -Id $opencodeProc.Id -Force -ErrorAction SilentlyContinue }
+    }
   }
   catch {
     Write-Status "OpenCode" $false $_.Exception.Message
@@ -220,40 +333,63 @@ if ($SkipOpenCode) {
 # -- 5. Next.js -----------------------------------------------------
 Write-Host "[5/6] Next.js dev server" -ForegroundColor Yellow
 
-try {
-  $nextLogOut = "$ProjectDir\.next\dev-server-out.log"
-  $nextLogErr = "$ProjectDir\.next\dev-server-err.log"
-  $proc = Start-Process -FilePath "npx.cmd" `
-    -ArgumentList "next", "dev" `
-    -WorkingDirectory $ProjectDir `
-    -WindowStyle Hidden -PassThru `
-    -RedirectStandardOutput $nextLogOut -RedirectStandardError $nextLogErr
-  Start-Sleep -Milliseconds 500
-  if ($proc) { try { $proc.Dispose() } catch {} }
-  Write-Status "Next.js" $true "launched in background (http://localhost:3000)"
-}
-catch {
-  Write-Status "Next.js" $false $_.Exception.Message
+if ($existing.nextjs -and (Get-Process -Id $existing.nextjs -ErrorAction SilentlyContinue)) {
+  Write-Status "Next.js" $true "already running (PID $($existing.nextjs))"
+  $activePids.nextjs = $existing.nextjs
+} else {
+  try {
+    $nextLogOut = "$ProjectDir\.next\dev-server-out.log"
+    $nextLogErr = "$ProjectDir\.next\dev-server-err.log"
+    $nextProc = Start-Process -FilePath "npx.cmd" `
+      -ArgumentList "next", "dev" `
+      -WorkingDirectory $ProjectDir `
+      -WindowStyle Hidden -PassThru `
+      -RedirectStandardOutput $nextLogOut -RedirectStandardError $nextLogErr
+    Start-Sleep -Seconds 2
+    if ($nextProc -and (Get-Process -Id $nextProc.Id -ErrorAction SilentlyContinue)) {
+      Write-Status "Next.js" $true "launched in background (PID $($nextProc.Id), http://localhost:3000)"
+      $activePids.nextjs = $nextProc.Id
+    } else {
+      Write-Status "Next.js" $false "failed to start"
+    }
+  }
+  catch {
+    Write-Status "Next.js" $false $_.Exception.Message
+  }
 }
 
 # -- 6. Worker ------------------------------------------------------
 Write-Host "[6/6] Worker (BullMQ)" -ForegroundColor Yellow
 
-try {
-  $workerLogOut = "$ProjectDir\.next\worker-out.log"
-  $workerLogErr = "$ProjectDir\.next\worker-err.log"
-  $envFile = "$ProjectDir\.env.local"
-  $proc = Start-Process -FilePath "npx.cmd" `
-    -ArgumentList "tsx", "--env-file=`"$envFile`"", "--watch", "src/workers/videoProcessor.ts" `
-    -WorkingDirectory $ProjectDir `
-    -WindowStyle Hidden -PassThru `
-    -RedirectStandardOutput $workerLogOut -RedirectStandardError $workerLogErr
-  Start-Sleep -Milliseconds 500
-  if ($proc) { try { $proc.Dispose() } catch {} }
-  Write-Status "Worker" $true "launched in background"
+if ($existing.worker -and (Get-Process -Id $existing.worker -ErrorAction SilentlyContinue)) {
+  Write-Status "Worker" $true "already running (PID $($existing.worker))"
+  $activePids.worker = $existing.worker
+} else {
+  try {
+    $workerLogOut = "$ProjectDir\.next\worker-out.log"
+    $workerLogErr = "$ProjectDir\.next\worker-err.log"
+    $envFile = "$ProjectDir\.env.local"
+    $workerProc = Start-Process -FilePath "npx.cmd" `
+      -ArgumentList "tsx", "--env-file=`"$envFile`"", "--watch", "src/workers/videoProcessor.ts" `
+      -WorkingDirectory $ProjectDir `
+      -WindowStyle Hidden -PassThru `
+      -RedirectStandardOutput $workerLogOut -RedirectStandardError $workerLogErr
+    Start-Sleep -Seconds 2
+    if ($workerProc -and (Get-Process -Id $workerProc.Id -ErrorAction SilentlyContinue)) {
+      Write-Status "Worker" $true "launched in background (PID $($workerProc.Id))"
+      $activePids.worker = $workerProc.Id
+    } else {
+      Write-Status "Worker" $false "failed to start"
+    }
+  }
+  catch {
+    Write-Status "Worker" $false $_.Exception.Message
+  }
 }
-catch {
-  Write-Status "Worker" $false $_.Exception.Message
+
+# -- Save PIDs ------------------------------------------------------
+if ($activePids.Count -gt 0) {
+  Save-TrackedPids -Pids $activePids
 }
 
 # -- Summary --------------------------------------------------------
@@ -261,7 +397,7 @@ Write-Host "`n========== Startup complete =========================`n" -Foregrou
 Write-Host "  Next.js  -> http://localhost:3000" -ForegroundColor Cyan
 Write-Host "  Whisper  -> http://localhost:8000 (optional)" -ForegroundColor Cyan
 Write-Host "  OpenCode -> http://localhost:4096 (optional)" -ForegroundColor Cyan
-Write-Host "  Worker   -> running in separate window" -ForegroundColor Cyan
+Write-Host "  Worker   -> running in background" -ForegroundColor Cyan
 Write-Host "  Redis    -> localhost:6379" -ForegroundColor Cyan
 Write-Host "  Postgres -> localhost:5432" -ForegroundColor Cyan
 Write-Host "`nUse .\start-dev.ps1 -Stop to shut everything down.`n" -ForegroundColor DarkGray
