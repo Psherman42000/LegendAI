@@ -1,4 +1,4 @@
-import { openai } from "./openai";
+import { openai } from "../openai";
 import type { TranscriptionSegment } from "@/types/subtitle";
 
 const SYSTEM_PROMPT = `Você é um revisor especialista em português brasileiro coloquial para criadores de conteúdo.
@@ -21,11 +21,11 @@ REGRAS OBRIGATÓRIAS:
 
 Retorne JSON com a mesma estrutura dos segmentos de entrada, apenas com os textos corrigidos.`;
 
-export async function correctTranscription(
-  segments: TranscriptionSegment[],
+export async function correctWithOpenAI(
+  segments: TranscriptionSegment[]
 ): Promise<TranscriptionSegment[]> {
   if (!process.env.OPENAI_API_KEY) {
-    return segments;
+    throw new Error("OPENAI_API_KEY is not set");
   }
 
   const response = await openai.responses.create({

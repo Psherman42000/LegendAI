@@ -9,7 +9,7 @@ import {
   uploadToR2,
   applySubtitleStyle,
 } from "@/lib/ffmpeg";
-import { correctTranscription } from "@/lib/gpt-correction";
+import { correctTranscription } from "@/lib/correction";
 import { prisma } from "@/lib/db";
 import { sendVideoReadyEmail } from "@/lib/email";
 import { writeSrtFile } from "@/lib/subtitle-artifacts";
@@ -22,6 +22,7 @@ interface VideoJob {
   originalUrl: string;
   duration: number;
   subtitleStyle?: SubtitleStyleId;
+  useAiCorrection?: boolean;
 }
 
 if (!process.env.REDIS_URL) {
@@ -73,7 +74,7 @@ async function saveTranscription(
 }
 
 async function processVideo(job: Job<VideoJob>): Promise<void> {
-  const { videoId, originalUrl, subtitleStyle } = job.data;
+  const { videoId, originalUrl, subtitleStyle, useAiCorrection } = job.data;
   let videoPath = "";
   let audioPath = "";
   let thumbnailPath = "";
@@ -95,7 +96,7 @@ async function processVideo(job: Job<VideoJob>): Promise<void> {
     await job.updateProgress(55);
 
     await updateVideoStatus(videoId, "CORRECTING");
-    const correctedSegments = await correctTranscription(rawTranscription.segments);
+    const correctedSegments = await correctTranscription(rawTranscription.segments, useAiCorrection);
     await job.updateProgress(70);
 
     await saveTranscription(

@@ -5,6 +5,7 @@ export type VideoJobPayload = {
   userId: string;
   originalUrl: string;
   duration: number;
+  useAiCorrection?: boolean;
 };
 
 let videoQueue: Queue<VideoJobPayload> | null = null;
