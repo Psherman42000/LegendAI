@@ -278,18 +278,19 @@ if ($SkipWhisper) {
   Write-Status "Whisper API" $true "skipped (main.py not found in whisper-api/)"
 } else {
   try {
-    $logFile = "$WhisperDir\uvicorn.log"
+    $whisperLogOut = "$WhisperDir\uvicorn-out.log"
+    $whisperLogErr = "$WhisperDir\uvicorn-err.log"
     $whisperProc = Start-Process -FilePath "uvicorn" `
       -ArgumentList "main:app --host 0.0.0.0 --port 8000" `
       -WorkingDirectory $WhisperDir `
-      -NoNewWindow -PassThru -RedirectStandardOutput $logFile -RedirectStandardError $logFile
+      -NoNewWindow -PassThru -RedirectStandardOutput $whisperLogOut -RedirectStandardError $whisperLogErr
     Start-Sleep -Seconds 2
     if (Test-Port -Port 8000) {
       Write-Status "Whisper API" $true "started on port 8000 (PID $($whisperProc.Id))"
       $activePids.whisper = $whisperProc.Id
     }
     else {
-      Write-Status "Whisper API" $false "check $logFile for details"
+      Write-Status "Whisper API" $false "check $whisperLogErr for details"
       if ($whisperProc) { Stop-Process -Id $whisperProc.Id -Force -ErrorAction SilentlyContinue }
     }
   }
@@ -309,19 +310,20 @@ if ($SkipOpenCode) {
   Write-Status "OpenCode" $true "already running on port 4096"
 } else {
   try {
-    $opencodeLog = "$ProjectDir\.next\opencode.log"
+    $opencodeLogOut = "$ProjectDir\.next\opencode-out.log"
+    $opencodeLogErr = "$ProjectDir\.next\opencode-err.log"
     $opencodeProc = Start-Process -FilePath "opencode" `
-      -ArgumentList "server", "--port", "4096" `
+      -ArgumentList "serve", "--port", "4096" `
       -WorkingDirectory $ProjectDir `
       -WindowStyle Hidden -PassThru `
-      -RedirectStandardOutput $opencodeLog -RedirectStandardError $opencodeLog
+      -RedirectStandardOutput $opencodeLogOut -RedirectStandardError $opencodeLogErr
     Start-Sleep -Seconds 3
     if (Test-Port -Port 4096) {
       Write-Status "OpenCode" $true "started on port 4096 (PID $($opencodeProc.Id))"
       $activePids.opencode = $opencodeProc.Id
     }
     else {
-      Write-Status "OpenCode" $false "check $opencodeLog for details"
+      Write-Status "OpenCode" $false "check $opencodeLogErr for details"
       if ($opencodeProc) { Stop-Process -Id $opencodeProc.Id -Force -ErrorAction SilentlyContinue }
     }
   }
