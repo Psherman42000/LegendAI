@@ -193,7 +193,7 @@ try {
   $nextLogOut = "$ProjectDir\.next\dev-server-out.log"
   $nextLogErr = "$ProjectDir\.next\dev-server-err.log"
   $envFile = "$ProjectDir\.env.local"
-  $proc = Start-Process -FilePath "npx" `
+  $proc = Start-Process -FilePath "npx.cmd" `
     -ArgumentList "tsx", "--env-file=`"$envFile`"", "node_modules/next/dist/bin/next", "dev" `
     -WorkingDirectory $ProjectDir `
     -WindowStyle Hidden -PassThru `
@@ -213,7 +213,7 @@ try {
   $workerLogOut = "$ProjectDir\.next\worker-out.log"
   $workerLogErr = "$ProjectDir\.next\worker-err.log"
   $envFile = "$ProjectDir\.env.local"
-  $proc = Start-Process -FilePath "npx" `
+  $proc = Start-Process -FilePath "npx.cmd" `
     -ArgumentList "tsx", "--env-file=`"$envFile`"", "--watch", "src/workers/videoProcessor.ts" `
     -WorkingDirectory $ProjectDir `
     -WindowStyle Hidden -PassThru `
