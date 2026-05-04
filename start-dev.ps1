@@ -312,7 +312,7 @@ if ($SkipOpenCode) {
   try {
     $opencodeLogOut = "$ProjectDir\.next\opencode-out.log"
     $opencodeLogErr = "$ProjectDir\.next\opencode-err.log"
-    $opencodeProc = Start-Process -FilePath "opencode" `
+    $opencodeProc = Start-Process -FilePath "opencode.cmd" `
       -ArgumentList "serve", "--port", "4096" `
       -WorkingDirectory $ProjectDir `
       -WindowStyle Hidden -PassThru `
