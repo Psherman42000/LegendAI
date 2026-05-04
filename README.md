@@ -50,6 +50,10 @@ R2_PUBLIC_URL=https://pub-xxx.r2.dev
 ```
 > ⚠️ **Importante:** `R2_ENDPOINT` é obrigatório. Sem ele, o sistema cai no fallback de disco (`public/uploads/`), que retorna URLs relativas e pode causar erro `Invalid URL` no worker.
 
+**Limites de Upload:**
+- Tamanho máximo por arquivo: **500 MB**
+- Após o upload, o vídeo é enfileirado automaticamente e o worker é disparado (best-effort).
+
 **Aplicação:**
 ```env
 NEXT_PUBLIC_APP_URL=http://localhost:3000  # Necessário para URLs absolutas no fallback de disco
@@ -131,9 +135,26 @@ READY means both files exist:
 - `processedUrl` (burnt MP4)
 - `srtUrl` (subtitle file)
 
+**Status dos vídeos:**
+- `QUEUED` — enviado para fila, aguardando processamento
+- `PROCESSING` — worker ativo (transcrição, correção, burn)
+- `READY` — legendas geradas, arquivos disponíveis
+- `EXPORTED` — vídeo com legendas queimadas disponível
+- `ERROR` — falha no pipeline; use "Tentar novamente" para reprocessar
+
 ### Health Check
 
 Endpoint `/api/health` retorna status real de PostgreSQL, Redis e R2. Útil para monitoramento e load balancers.
+
+### Migrações Manuais (Offline)
+
+Se o PostgreSQL local estiver offline e `prisma migrate dev` falhar com `P1001`, crie a migration manualmente:
+
+1. Crie a pasta: `prisma/migrations/YYYYMMDDhhmmss_nome_descritivo/`
+2. Escreva o SQL em `migration.sql`
+3. Execute: `npx prisma validate` e `npx prisma generate`
+
+> ⚠️ Não use `pg_ctl start` dentro de scripts automatizados se o banco já estiver configurado como serviço do Windows.
 
 ### Requisitos Adicionais
 
