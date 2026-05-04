@@ -13,6 +13,7 @@
 
 param(
   [switch]$SkipWhisper,
+  [switch]$SkipOpenCode,
   [switch]$Stop
 )
 
@@ -70,6 +71,10 @@ function Stop-DevServices {
   # Whisper API (uvicorn)
   Get-Process -Name "uvicorn" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
   Write-Status "Whisper API" $true "stopped"
+
+  # OpenCode server
+  Get-Process -Name "opencode" -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+  Write-Status "OpenCode" $true "stopped"
 
   # Redis
   try {
@@ -160,7 +165,7 @@ Write-Host "`nWaiting 3 seconds for services to stabilise..." -ForegroundColor D
 Start-Sleep -Seconds 3
 
 # -- 3. Whisper API (optional) --------------------------------------
-Write-Host "[3/5] Whisper API" -ForegroundColor Yellow
+Write-Host "[3/6] Whisper API" -ForegroundColor Yellow
 
 $whisperRunning = Test-Port -Port 8000
 
@@ -186,15 +191,40 @@ if ($SkipWhisper) {
   }
 }
 
-# -- 4. Next.js -----------------------------------------------------
-Write-Host "[4/5] Next.js dev server" -ForegroundColor Yellow
+# -- 4. OpenCode Server (optional) ----------------------------------
+Write-Host "[4/6] OpenCode Server" -ForegroundColor Yellow
+
+$opencodeRunning = Test-Port -Port 4096
+
+if ($SkipOpenCode) {
+  Write-Status "OpenCode" $true "skipped (-SkipOpenCode)"
+} elseif ($opencodeRunning) {
+  Write-Status "OpenCode" $true "already running on port 4096"
+} else {
+  try {
+    $opencodeLog = "$ProjectDir\.next\opencode.log"
+    $proc = Start-Process -FilePath "opencode" `
+      -ArgumentList "server", "--port", "4096" `
+      -WorkingDirectory $ProjectDir `
+      -WindowStyle Hidden -PassThru `
+      -RedirectStandardOutput $opencodeLog -RedirectStandardError $opencodeLog
+    Start-Sleep -Seconds 3
+    if (Test-Port -Port 4096) { Write-Status "OpenCode" $true "started on port 4096" }
+    else                       { Write-Status "OpenCode" $false "check $opencodeLog for details" }
+  }
+  catch {
+    Write-Status "OpenCode" $false $_.Exception.Message
+  }
+}
+
+# -- 5. Next.js -----------------------------------------------------
+Write-Host "[5/6] Next.js dev server" -ForegroundColor Yellow
 
 try {
   $nextLogOut = "$ProjectDir\.next\dev-server-out.log"
   $nextLogErr = "$ProjectDir\.next\dev-server-err.log"
-  $envFile = "$ProjectDir\.env.local"
   $proc = Start-Process -FilePath "npx.cmd" `
-    -ArgumentList "tsx", "--env-file=`"$envFile`"", "node_modules/next/dist/bin/next", "dev" `
+    -ArgumentList "next", "dev" `
     -WorkingDirectory $ProjectDir `
     -WindowStyle Hidden -PassThru `
     -RedirectStandardOutput $nextLogOut -RedirectStandardError $nextLogErr
@@ -206,8 +236,8 @@ catch {
   Write-Status "Next.js" $false $_.Exception.Message
 }
 
-# -- 5. Worker ------------------------------------------------------
-Write-Host "[5/5] Worker (BullMQ)" -ForegroundColor Yellow
+# -- 6. Worker ------------------------------------------------------
+Write-Host "[6/6] Worker (BullMQ)" -ForegroundColor Yellow
 
 try {
   $workerLogOut = "$ProjectDir\.next\worker-out.log"
@@ -230,6 +260,7 @@ catch {
 Write-Host "`n========== Startup complete =========================`n" -ForegroundColor Cyan
 Write-Host "  Next.js  -> http://localhost:3000" -ForegroundColor Cyan
 Write-Host "  Whisper  -> http://localhost:8000 (optional)" -ForegroundColor Cyan
+Write-Host "  OpenCode -> http://localhost:4096 (optional)" -ForegroundColor Cyan
 Write-Host "  Worker   -> running in separate window" -ForegroundColor Cyan
 Write-Host "  Redis    -> localhost:6379" -ForegroundColor Cyan
 Write-Host "  Postgres -> localhost:5432" -ForegroundColor Cyan
