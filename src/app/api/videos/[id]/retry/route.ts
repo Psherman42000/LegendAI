@@ -1,14 +1,11 @@
 import { NextResponse } from "next/server";
-import { Queue } from "bullmq";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { enqueueVideoJob, triggerWorker } from "@/lib/queue";
+import { getSignedUrlFromAny } from "@/lib/r2";
 
 type Params = { params: Promise<{ id: string }> };
-
-const getQueue = () => new Queue("video-processing", {
-  connection: { url: process.env.REDIS_URL ?? "redis://localhost:6379" },
-});
 
 export async function POST(_request: Request, { params }: Params) {
   const session = await getServerSession(authOptions);
@@ -30,28 +27,38 @@ export async function POST(_request: Request, { params }: Params) {
   }
 
   try {
-    const queue = getQueue();
-    await queue.add("process-video", {
+    // Get a fresh signed URL for the video source
+    const originalUrl = await getSignedUrlFromAny(video.originalUrl);
+    if (!originalUrl) {
+      return NextResponse.json(
+        { ok: false, error: "URL do vídeo não disponível" },
+        { status: 400 },
+      );
+    }
+
+    // Enqueue the retry job with the fresh signed URL
+    await enqueueVideoJob({
       videoId: video.id,
       userId: video.userId,
-      originalUrl: video.originalUrl,
+      originalUrl,
       duration: video.duration ?? 0,
-      useAiCorrection: video.useAiCorrection,
-    }, {
-      attempts: 3,
-      backoff: { type: "exponential", delay: 5000 },
+      useAiCorrection: video.useAiCorrection ?? false,
     });
 
+    // Reset status and clear error
     await prisma.video.update({
       where: { id: video.id },
       data: { status: "QUEUED", errorMessage: null },
     });
 
+    // Best-effort trigger worker
+    await triggerWorker().catch(() => undefined);
+
     return NextResponse.json({ ok: true, data: { videoId: video.id, status: "QUEUED" } });
   } catch (error) {
     return NextResponse.json(
       { ok: false, error: error instanceof Error ? error.message : "Erro ao enfileirar vídeo" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

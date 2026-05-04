@@ -2,10 +2,13 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { enqueueVideoJob } from "@/lib/queue";
+import { enqueueVideoJob, triggerWorker } from "@/lib/queue";
 import { PLANS } from "@/lib/plans";
+import { getSignedUrlFromAny } from "@/lib/r2";
 import type { PaymentType } from "@/types/video";
 import type { VideoStatus } from "@/types/video";
+
+const MAX_FILE_SIZE = 500 * 1024 * 1024; // 500MB
 
 type CreateVideoBody = {
   title: string;
@@ -18,27 +21,68 @@ type CreateVideoBody = {
   useAiCorrection?: boolean;
 };
 
-const demoVideos = [
-  { id: "demo-1", title: "Corte de podcast", status: "READY", duration: 120 },
-  { id: "demo-2", title: "Tutorial rápido", status: "PROCESSING", duration: 240 },
-];
-
-export async function GET() {
+export async function GET(request: Request) {
   const session = await getServerSession(authOptions);
   if (!session?.user?.id) {
     return NextResponse.json({ ok: false, error: "Não autenticado" }, { status: 401 });
   }
 
-  const videos = await prisma.video.findMany({
-    where: { userId: session.user.id },
-    orderBy: { createdAt: "desc" },
-    include: { transcription: true },
-  }).catch(() => []);
+  const { searchParams } = new URL(request.url);
+  const page = Math.max(1, parseInt(searchParams.get("page") ?? "1", 10));
+  const limit = Math.min(100, Math.max(1, parseInt(searchParams.get("limit") ?? "10", 10)));
+  const search = searchParams.get("search")?.trim() || undefined;
 
-  return NextResponse.json({
-    ok: true,
-    data: videos.length > 0 ? videos : demoVideos,
-  });
+  const where: Record<string, unknown> = { userId: session.user.id };
+  if (search) {
+    where.title = { contains: search, mode: "insensitive" };
+  }
+
+  try {
+    const [total, videos] = await Promise.all([
+      prisma.video.count({ where }),
+      prisma.video.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        skip: (page - 1) * limit,
+        take: limit,
+        include: { transcription: true },
+      }),
+    ]);
+
+    // Generate fresh signed URLs for READY/EXPORTED videos only
+    const signedVideos = await Promise.all(
+      videos.map(async (video) => {
+        if (video.status === "READY" || video.status === "EXPORTED") {
+          const [processedUrl, srtUrl, audioUrl, thumbnailUrl] = await Promise.all([
+            getSignedUrlFromAny(video.processedUrl),
+            getSignedUrlFromAny(video.srtUrl),
+            getSignedUrlFromAny(video.audioUrl),
+            getSignedUrlFromAny(video.thumbnailUrl),
+          ]);
+          return { ...video, processedUrl, srtUrl, audioUrl, thumbnailUrl };
+        }
+        return video;
+      }),
+    );
+
+    return NextResponse.json({
+      ok: true,
+      data: signedVideos,
+      pagination: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error("[api/videos GET]", error);
+    return NextResponse.json({
+      ok: true,
+      data: [],
+      pagination: { total: 0, page: 1, limit, totalPages: 0 },
+    });
+  }
 }
 
 export async function POST(request: Request) {
@@ -65,6 +109,14 @@ export async function POST(request: Request) {
   const body = (await request.json()) as CreateVideoBody;
   if (!body.title || !body.originalUrl) {
     return NextResponse.json({ ok: false, error: "title e originalUrl são obrigatórios" }, { status: 400 });
+  }
+
+  // Enforce 500MB limit if fileSize is present
+  if (body.fileSize && body.fileSize > MAX_FILE_SIZE) {
+    return NextResponse.json(
+      { ok: false, error: "Arquivo muito grande. O limite é de 500MB." },
+      { status: 413 },
+    );
   }
 
   const paymentType = body.paymentType ?? "SUBSCRIPTION";
@@ -100,24 +152,50 @@ export async function POST(request: Request) {
     }
   }
 
-  const video = await prisma.video.create({
-    data: {
-      userId: userId,
-      title: body.title,
-      originalUrl: body.originalUrl,
-      duration: body.duration ?? null,
-      fileSize: body.fileSize ?? null,
-      mimeType: body.mimeType ?? null,
-      paymentType,
-      paymentId: body.paymentId ?? null,
-      useAiCorrection: body.useAiCorrection ?? false,
-      status: "QUEUED",
-    },
+  // Create Video and increment/upsert MonthlyUsage in the same transaction
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  const video = await prisma.$transaction(async (tx) => {
+    const v = await tx.video.create({
+      data: {
+        userId,
+        title: body.title,
+        originalUrl: body.originalUrl,
+        duration: body.duration ?? null,
+        fileSize: body.fileSize ?? null,
+        mimeType: body.mimeType ?? null,
+        paymentType,
+        paymentId: body.paymentId ?? null,
+        useAiCorrection: body.useAiCorrection ?? false,
+        status: "QUEUED",
+      },
+    });
+
+    await tx.monthlyUsage.upsert({
+      where: {
+        userId_year_month: { userId, year, month },
+      },
+      update: {
+        videosCount: { increment: 1 },
+        secondsTotal: { increment: body.duration ?? 0 },
+      },
+      create: {
+        userId,
+        year,
+        month,
+        videosCount: 1,
+        secondsTotal: body.duration ?? 0,
+      },
+    });
+
+    return v;
   });
 
   await enqueueVideoJob({
     videoId: video.id,
-    userId: userId,
+    userId,
     originalUrl: body.originalUrl,
     duration: body.duration ?? 0,
     useAiCorrection: body.useAiCorrection ?? false,
@@ -127,6 +205,9 @@ export async function POST(request: Request) {
     where: { id: video.id },
     data: { jobId: `job-${video.id}` },
   }).catch(() => undefined);
+
+  // Best-effort trigger worker
+  await triggerWorker().catch(() => undefined);
 
   return NextResponse.json({
     ok: true,

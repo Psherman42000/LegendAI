@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { sendLimitReachedEmail, sendWebhookNotification } from "@/lib/email";
 
@@ -39,6 +40,35 @@ export async function POST(request: Request) {
   };
 
   const topic = payload.topic ?? payload.type ?? "";
+  const notificationId = payload.data?.id;
+
+  // Idempotency: notificationId is required
+  if (!notificationId) {
+    return NextResponse.json(
+      { ok: false, error: "payload.data.id is required for idempotency" },
+      { status: 400 },
+    );
+  }
+
+  // Create WebhookLog to deduplicate; if unique constraint collides, treat as duplicate success
+  try {
+    await prisma.webhookLog.create({
+      data: {
+        provider: "mercadopago",
+        topic,
+        notificationId,
+        payload: payload as object,
+      },
+    });
+  } catch (error) {
+    if (
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      return NextResponse.json({ ok: true, duplicate: true });
+    }
+    throw error;
+  }
 
   if (topic === "payment") {
     const paymentId = payload.data?.id ?? "";
