@@ -39,7 +39,7 @@ export function useUpload() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: file.name,
-          originalUrl: uploadData.data.url,
+          originalUrl: uploadData.url,
           duration: 0, // Will be detected server-side
           fileSize: file.size,
           mimeType: file.type,
@@ -55,7 +55,7 @@ export function useUpload() {
       const data = await response.json();
       const result = {
         id: data.data.videoId,
-        url: uploadData.data.url,
+        url: uploadData.url,
         title: file.name,
         duration: 0,
       };
