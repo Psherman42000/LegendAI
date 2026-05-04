@@ -8,6 +8,7 @@
     "build:worker": "tsc --project tsconfig.worker.json",
     "start": "next start",
     "worker": "npx tsx --env-file=.env.local src/workers/videoProcessor.ts",
+    "worker:start": "npx tsx --env-file=.env.local scripts/start-worker.ts",
     "worker:dev": "npx tsx --env-file=.env.local --watch src/workers/videoProcessor.ts",
     "db:push": "prisma db push",
     "db:migrate": "prisma migrate dev",
@@ -46,6 +47,7 @@
     "resend": "^6.12.2",
     "shadcn-ui": "^0.9.5",
     "tailwind-merge": "^3.5.0",
+    "tsx": "^4.20.6",
     "wink-eng-lite-web-model": "^1.8.1",
     "wink-nlp": "^2.4.0",
     "zod": "^4.3.6",
@@ -59,7 +61,6 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "tailwindcss": "^4",
-    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }
