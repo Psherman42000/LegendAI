@@ -1,4 +1,4 @@
-import { getLlama, LlamaChatSession } from "node-llama-cpp";
+import { getLlama, LlamaChatSession, resolveModelFile } from "node-llama-cpp";
 import path from "path";
 import fs from "fs/promises";
 import type { TranscriptionSegment } from "@/types/subtitle";
@@ -23,8 +23,10 @@ async function initLlama() {
   
   const modelUrl = process.env.LOCAL_LLM_MODEL_URL || "https://huggingface.co/Qwen/Qwen2.5-1.5B-Instruct-GGUF/resolve/main/qwen2.5-1.5b-instruct-q4_k_m.gguf";
   
+  const modelPath = await resolveModelFile(modelUrl, modelsDir);
+  
   modelInstance = await llama.loadModel({
-    modelPath: await llama.downloadModel({ modelUrl, directory: modelsDir })
+    modelPath: modelPath
   });
   
   contextInstance = await modelInstance.createContext();
