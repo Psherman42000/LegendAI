@@ -209,3 +209,15 @@ model Payment {
 
   @@map("payments")
 }
+
+model WebhookLog {
+  id             String   @id @default(cuid())
+  provider       String
+  notificationId String
+  topic          String
+  payload        Json
+  processedAt    DateTime @default(now())
+
+  @@unique([provider, topic, notificationId])
+  @@map("webhook_logs")
+}
