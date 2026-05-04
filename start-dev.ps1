@@ -317,7 +317,7 @@ if ($SkipOpenCode) {
       -WorkingDirectory $ProjectDir `
       -WindowStyle Hidden -PassThru `
       -RedirectStandardOutput $opencodeLogOut -RedirectStandardError $opencodeLogErr
-    Start-Sleep -Seconds 3
+    Start-Sleep -Seconds 5
     if (Test-Port -Port 4096) {
       Write-Status "OpenCode" $true "started on port 4096 (PID $($opencodeProc.Id))"
       $activePids.opencode = $opencodeProc.Id
