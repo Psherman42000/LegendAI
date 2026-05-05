@@ -92,11 +92,11 @@ async function processVideo(job: Job<VideoJob>): Promise<void> {
     await job.updateProgress(5);
 
     // Look up video in DB to get fresh URL (signed URLs expire after 24h)
-    const video = await prisma.video.findUnique({ where: { id: videoId } });
-    if (!video) throw new Error(`Video ${videoId} not found in database`);
+    const videoRecord = await prisma.video.findUnique({ where: { id: videoId } });
+    if (!videoRecord) throw new Error(`Video ${videoId} not found in database`);
 
-    const freshOriginalUrl = video.originalUrl
-      ? await getSignedUrlFromAny(video.originalUrl)
+    const freshOriginalUrl = videoRecord.originalUrl
+      ? (await getSignedUrlFromAny(videoRecord.originalUrl)) ?? videoRecord.originalUrl
       : originalUrl;
 
     videoPath = await downloadFromR2(freshOriginalUrl);
