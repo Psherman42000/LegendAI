@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useUpload } from "@/hooks/useUpload";
 import { VideoUploadFlow } from "./VideoUploadFlow";
 import { usePlan } from "@/hooks/usePlan";
+import { AvulsoCalculator } from "@/components/billing/AvulsoCalculator";
 
 export function UploadZone() {
   const { uploadFile, uploadUrl, isUploading, progress, error, useAiCorrection, setUseAiCorrection } = useUpload();
@@ -136,6 +137,12 @@ export function UploadZone() {
             videoTitle={uploadedVideo.title}
             duration={uploadedVideo.duration}
           />
+          {uploadedVideo.duration > 0 && (
+            <AvulsoCalculator
+              durationSeconds={uploadedVideo.duration}
+              videoTitle={uploadedVideo.title}
+            />
+          )}
           <div className="flex justify-center">
             <Button variant="ghost" onClick={handleReset} className="text-sm text-[var(--text-secondary)]">
               ← Enviar outro vídeo

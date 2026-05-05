@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { UsageBar } from "./UsageBar";
+import { usePlan } from "@/hooks/usePlan";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -18,6 +19,7 @@ const links = [
 export function Sidebar() {
   const { data: session } = useSession();
   const user = session?.user;
+  const { videosUsed, videosLimit } = usePlan();
 
   return (
     <aside className="surface sticky top-0 flex h-screen w-full max-w-[280px] flex-col border-r border-white/5 p-6">
@@ -37,7 +39,7 @@ export function Sidebar() {
         ))}
       </nav>
       <div className="mt-auto space-y-5">
-        <UsageBar />
+        <UsageBar used={videosUsed} limit={videosLimit} />
         <div className="surface-soft rounded-xl p-4">
           <div className="text-sm font-semibold">{user?.name ?? "Usuário"}</div>
           <p className="text-xs text-[var(--text-secondary)]">{user?.email ?? ""}</p>

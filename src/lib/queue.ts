@@ -49,6 +49,9 @@ function getVideoQueue(): Queue<VideoJobPayload> {
 export async function enqueueVideoJob(data: VideoJobPayload): Promise<void> {
   const queue = getVideoQueue();
   await queue.add("process-video", data);
+
+  // Best-effort trigger of the on-demand worker — cron is the backup
+  triggerWorker().catch(() => undefined);
 }
 
 /**
