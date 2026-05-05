@@ -218,7 +218,7 @@ Kill-ProjectNodeProcesses
 Write-Host "`n========== LegendaAI - Development Startup ==========`n" -ForegroundColor Cyan
 
 $activePids = @{}
-# Clean up old PID file — stop now uses port-based detection instead
+# Clean up old PID file - stop now uses port-based detection instead
 Remove-TrackedPids
 
 # -- 1. PostgreSQL --------------------------------------------------
@@ -371,7 +371,7 @@ if ($nextRunning) {
     if (Test-Port -Port 3000) {
       Write-Status "Next.js" $true "started (http://localhost:3000)"
     } else {
-      Write-Status "Next.js" $false "might still be starting — check $nextLogErr"
+      Write-Status "Next.js" $false "might still be starting - check $nextLogErr"
     }
   }
   catch {
