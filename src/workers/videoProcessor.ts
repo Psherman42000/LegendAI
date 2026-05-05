@@ -16,6 +16,7 @@ import { writeSrtFile } from "@/lib/subtitle-artifacts";
 import { transcribeWithWhisper } from "@/lib/whisper";
 import { splitSegmentsByWords, type WordLevelSegment } from "@/lib/segment-splitter";
 import type { SubtitleStyleId } from "@/lib/subtitle-styles";
+import { getSignedUrlFromAny } from "@/lib/r2";
 
 interface VideoJob {
   videoId: string;
@@ -90,7 +91,15 @@ async function processVideo(job: Job<VideoJob>): Promise<void> {
     await updateVideoStatus(videoId, "PROCESSING");
     await job.updateProgress(5);
 
-    videoPath = await downloadFromR2(originalUrl);
+    // Look up video in DB to get fresh URL (signed URLs expire after 24h)
+    const video = await prisma.video.findUnique({ where: { id: videoId } });
+    if (!video) throw new Error(`Video ${videoId} not found in database`);
+
+    const freshOriginalUrl = video.originalUrl
+      ? await getSignedUrlFromAny(video.originalUrl)
+      : originalUrl;
+
+    videoPath = await downloadFromR2(freshOriginalUrl);
     await job.updateProgress(15);
 
     audioPath = await extractAudio(videoPath);
