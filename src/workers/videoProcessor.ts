@@ -111,9 +111,7 @@ async function processVideo(job: Job<VideoJob>): Promise<void> {
 
     // Build word-level segments for precise subtitle display
     const wordLevelSegments = splitSegmentsByWords(correctedSegmentsWithWords, {
-      maxWordsPerChunk: 3,
-      minDurationSeconds: 0.8,
-      maxDurationSeconds: 2.5,
+      speed: "normal",
     });
 
     await saveTranscription(

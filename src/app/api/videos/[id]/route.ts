@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { deleteFromR2, extractR2Key } from "@/lib/r2";
+import { deleteFromR2, extractR2Key, getSignedUrlFromAny } from "@/lib/r2";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -27,6 +27,20 @@ export async function GET(_request: Request, { params }: Params) {
 
   if (!video) {
     return NextResponse.json({ ok: false, error: "Vídeo não encontrado" }, { status: 404 });
+  }
+
+  // Sign URLs for READY/EXPORTED videos to avoid R2 401 errors
+  if (video.status === "READY" || video.status === "EXPORTED") {
+    const [processedUrl, srtUrl, audioUrl, thumbnailUrl] = await Promise.all([
+      getSignedUrlFromAny(video.processedUrl),
+      getSignedUrlFromAny(video.srtUrl),
+      getSignedUrlFromAny(video.audioUrl),
+      getSignedUrlFromAny(video.thumbnailUrl),
+    ]);
+    return NextResponse.json({
+      ok: true,
+      data: { ...video, processedUrl, srtUrl, audioUrl, thumbnailUrl },
+    });
   }
 
   return NextResponse.json({ ok: true, data: video });

@@ -7,21 +7,23 @@ const SYSTEM_PROMPT = `Você é um revisor especialista em português brasileiro
 Sua tarefa é corrigir erros de transcrição automática mantendo o estilo falado do criador.
 
 REGRAS OBRIGATÓRIAS:
-1. Mantenha expressões coloquiais: "né", "tá", "pra", "tô", "tava", "num" (= não), "cê" (= você)
-2. Corrija apenas erros CLAROS de transcrição — não formalize a linguagem
-3. Preserve nomes próprios brasileiros: Anitta, Flamengo, Nubank, Mercado Livre, Receita Federal, etc.
-4. Adicione pontuação natural onde falta (vírgulas, pontos finais, reticências)
-5. Corrija confusões fonéticas comuns do Whisper em PT-BR:
-   - "não é" → "né" quando no contexto coloquial
-   - "para" → "pra" quando no contexto coloquial
-   - "está" → "tá" quando no contexto coloquial  
-   - "você" → "cê" quando no contexto coloquial
-   - "a gente" vs "agente" — atenção ao contexto
-6. Mantenha gírias regionais como estão
-7. NÃO altere o timing dos segmentos
-8. NÃO mude o significado de nenhuma frase
+1. Corrija TODOS os erros fonéticos do Whisper em PT-BR — o Whisper frequentemente troca:
+   - "legenda" → "leginda", "legendador" → "legindador"
+   - "não é" ↔ "né" (contexto coloquial)
+   - "para" ↔ "pra" (contexto coloquial)
+   - "está" ↔ "tá" (contexto coloquial)
+   - "você" ↔ "cê" (contexto coloquial)
+   - "a gente" ↔ "agente" (contexto)
+   - Nomes próprios brasileiros: Anitta, Flamengo, Nubank, etc.
+2. Mantenha expressões coloquiais: "né", "tá", "pra", "tô", "tava", "num" (= não), "cê" (= você)
+3. Adicione pontuação natural onde falta (vírgulas, pontos finais, reticências)
+4. NÃO formalize a linguagem — mantenha o tom falado
+5. NÃO altere o timing dos segmentos
+6. NÃO mude o significado de nenhuma frase
+7. Se uma palavra parece errada no contexto, corrija — o Whisper erra muito em PT-BR
 
-Retorne JSON com a mesma estrutura dos segmentos de entrada, apenas com os textos corrigidos.`;
+Retorne JSON com a mesma estrutura dos segmentos de entrada, apenas com os textos corrigidos.
+Preserve os campos \`start\`, \`end\` e \`words\` exatamente como receber.`;
 
 function getModel(modelString: string) {
   const parts = modelString.split("/");
@@ -63,7 +65,6 @@ export async function correctWithOpenCode(
     const { data: response, error: promptError } = await opencodeClient.session.prompt({
       path: { id: sessionId },
       body: {
-        agent: "general",
         model: getModel(MODEL),
         system: SYSTEM_PROMPT,
         parts: [{ type: "text", text: JSON.stringify(segments) }],
@@ -74,8 +75,9 @@ export async function correctWithOpenCode(
       throw new Error("Failed to prompt OpenCode session");
     }
 
-    const textParts = response.parts.filter((p: any) => p.type === "text");
-    const rawText = textParts.map((p: any) => p.text).join("").trim();
+    const parts: Array<{ type: string; text?: string }> = response.parts;
+    const textParts = parts.filter((p) => p.type === "text");
+    const rawText = textParts.map((p) => p.text ?? "").join("").trim();
     
     if (!rawText) {
       console.warn("[Correction] OpenCode returned empty response");
