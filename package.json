@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:worker": "tsc --project tsconfig.worker.json",
+    "test": "tsx --test tests/**/*.test.ts",
     "start": "next start",
     "worker": "npx tsx --env-file=.env.local src/workers/videoProcessor.ts",
     "worker:start": "npx tsx --env-file=.env.local scripts/start-worker.ts",

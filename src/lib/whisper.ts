@@ -136,6 +136,7 @@ function findWhisperExecutable(): string {
 
 async function transcribeWithLocalWhisper(audioPath: string): Promise<WhisperApiResponse | null> {
   const tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), "whisper-"));
+  const whisperModel = process.env.WHISPER_MODEL || (process.env.NODE_ENV === "production" ? "medium" : "small");
 
   try {
     await new Promise<void>((resolve, reject) => {
@@ -144,7 +145,7 @@ async function transcribeWithLocalWhisper(audioPath: string): Promise<WhisperApi
         [
           audioPath,
           "--model",
-          "base",
+          whisperModel,
           "--language",
           "Portuguese",
           "--output_format",

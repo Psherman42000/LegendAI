@@ -1,6 +1,5 @@
-import { spawn } from "node:child_process";
-import path from "node:path";
 import { NextResponse } from "next/server";
+import { startDetachedWorker } from "@/lib/worker-spawn";
 
 /**
  * POST /api/worker/start
@@ -48,32 +47,25 @@ export async function POST(request: Request) {
     );
   }
 
-  // Spawn the worker process (detached + unref so the HTTP response is not tied
-  // to the child's lifetime)
-  const workerScript = path.join(
-    process.cwd(),
-    "src",
-    "workers",
-    "videoProcessor.ts",
-  );
-
-  const child = spawn("npx", ["tsx", workerScript], {
-    stdio: "ignore",
-    env: { ...process.env },
-    detached: true,
+  const result = startDetachedWorker({
+    onError(error) {
+      console.error("[api/worker/start] Failed to spawn worker:", error);
+    },
   });
 
-  child.unref();
+  if (!result.ok) {
+    console.error(`[api/worker/start] ${result.error}`);
+    return NextResponse.json(
+      { ok: false, error: result.error },
+      { status: 500 },
+    );
+  }
 
-  child.on("error", (err) => {
-    console.error("[api/worker/start] Failed to spawn worker:", err);
-  });
-
-  console.log(`[api/worker/start] Worker spawned (PID ${child.pid})`);
+  console.log(`[api/worker/start] Worker spawned (PID ${result.pid})`);
 
   return NextResponse.json({
     ok: true,
-    pid: child.pid,
+    pid: result.pid,
     message: "Worker started",
   });
 }

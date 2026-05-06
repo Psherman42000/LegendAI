@@ -1,4 +1,6 @@
 import { execFile } from "node:child_process";
+import { randomUUID } from "node:crypto";
+import { accessSync, constants } from "node:fs";
 import fs from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
@@ -21,7 +23,7 @@ function findFfmpegExecutable(): string {
 
   for (const candidate of candidates) {
     try {
-      require("node:fs").accessSync(candidate, require("node:fs").constants.X_OK);
+      accessSync(candidate, constants.X_OK);
       return candidate;
     } catch {
       continue;
@@ -40,19 +42,50 @@ function ffmpeg(args: string[], timeout = 300_000): Promise<void> {
   });
 }
 
+function uniqueSiblingPath(sourcePath: string, extension: string): string {
+  const parsed = path.parse(sourcePath);
+  const normalizedExtension = extension.startsWith(".") ? extension : `.${extension}`;
+  return path.join(parsed.dir, `${parsed.name}-${Date.now()}-${randomUUID()}${normalizedExtension}`);
+}
+
+export function buildExtractAudioCommand(videoPath: string): { audioPath: string; args: string[] } {
+  const audioPath = uniqueSiblingPath(videoPath, ".wav");
+  return {
+    audioPath,
+    args: [
+      "-y",
+      "-nostdin",
+      "-i", videoPath,
+      "-vn",
+      "-acodec", "pcm_s16le",
+      "-ar", "16000",
+      "-ac", "1",
+      audioPath,
+    ],
+  };
+}
+
+function buildExtractThumbnailCommand(videoPath: string): { thumbnailPath: string; args: string[] } {
+  const thumbnailPath = uniqueSiblingPath(videoPath, ".jpg");
+  return {
+    thumbnailPath,
+    args: [
+      "-y",
+      "-nostdin",
+      "-i", videoPath,
+      "-ss", "00:00:01",
+      "-vframes", "1",
+      thumbnailPath,
+    ],
+  };
+}
+
 // ─────────────────────────────────────────────
 // Audio extraction
 // ─────────────────────────────────────────────
 export async function extractAudio(videoPath: string): Promise<string> {
-  const audioPath = videoPath.replace(/\.[^.]+$/, ".wav");
-  await ffmpeg([
-    "-i", videoPath,
-    "-vn",
-    "-acodec", "pcm_s16le",
-    "-ar", "16000",
-    "-ac", "1",
-    audioPath,
-  ]);
+  const { audioPath, args } = buildExtractAudioCommand(videoPath);
+  await ffmpeg(args);
   return audioPath;
 }
 
@@ -60,13 +93,8 @@ export async function extractAudio(videoPath: string): Promise<string> {
 // Thumbnail extraction
 // ─────────────────────────────────────────────
 export async function extractThumbnail(videoPath: string): Promise<string> {
-  const thumbnailPath = videoPath.replace(/\.[^.]+$/, ".jpg");
-  await ffmpeg([
-    "-i", videoPath,
-    "-ss", "00:00:01",
-    "-vframes", "1",
-    thumbnailPath,
-  ]);
+  const { thumbnailPath, args } = buildExtractThumbnailCommand(videoPath);
+  await ffmpeg(args);
   return thumbnailPath;
 }
 
@@ -139,6 +167,8 @@ export async function applySubtitleStyle(
   const filter = `subtitles='${escapedSrt}':${forceStyle}`;
 
   await ffmpeg([
+    "-y",
+    "-nostdin",
     "-i", videoPath,
     "-vf", filter,
     "-c:a", "copy",

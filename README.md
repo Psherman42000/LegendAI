@@ -18,6 +18,7 @@ Plataforma SaaS para gerar legendas em português brasileiro, com frontend em Ne
 ```bash
 npm run dev
 npm run build
+npm run test              # testes unitários (Node test runner + tsx)
 npm run worker:dev        # worker contínuo (dev)
 npm run worker:start      # worker on-demand (checa fila → inicia → auto-shutdown)
 npm run db:push
@@ -141,6 +142,12 @@ READY means both files exist:
 - `READY` — legendas geradas, arquivos disponíveis
 - `EXPORTED` — vídeo com legendas queimadas disponível
 - `ERROR` — falha no pipeline; use "Tentar novamente" para reprocessar
+
+### Troubleshooting
+
+Para diagnósticos de bugs conhecidos, causas raiz e reparos manuais, consulte:
+
+- **`docs/memory/critical-bug-findings.md`** — documentação técnica de bugs corrigidos, incluindo troca de conta Google, worker travado, e reparo de banco local.
 
 ### Health Check
 

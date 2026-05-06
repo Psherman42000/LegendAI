@@ -1,8 +1,8 @@
 "use client";
 
-import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { signInWithGoogleAccountPicker } from "@/lib/google-auth-client";
 
 export function RegisterForm() {
   return (
@@ -14,7 +14,7 @@ export function RegisterForm() {
       <CardContent className="space-y-4">
         <Button
           className="w-full"
-          onClick={() => signIn("google", { callbackUrl: "/dashboard" })}
+          onClick={() => { void signInWithGoogleAccountPicker(); }}
         >
           Criar conta com Google
         </Button>

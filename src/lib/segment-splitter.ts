@@ -69,6 +69,49 @@ export interface WordLevelSegment {
   }>;
 }
 
+function splitTextWords(text: string): string[] {
+  return text.trim().split(/\s+/).filter(Boolean);
+}
+
+function joinWordTexts(words: WordLevelSegment["words"]): string {
+  return words.map((w) => w.word.trim()).filter(Boolean).join(" ");
+}
+
+/**
+ * Treat segment.text as the canonical, possibly AI-corrected text.
+ *
+ * Whisper word timestamps still carry the raw transcription words. When AI
+ * correction changes text but providers preserve `words`, blindly rendering
+ * `words[].word` reverts the subtitle back to the uncorrected Whisper output.
+ *
+ * If the corrected text has the same token count, keep exact timings and swap
+ * word labels. If token count changed, return undefined so the caller falls
+ * back to text-based interpolation for the corrected text.
+ */
+function alignWordsWithSegmentText(
+  segment: TranscriptionSegment,
+): WordLevelSegment["words"] | undefined {
+  const words = segment.words;
+  if (!words || words.length === 0) return undefined;
+
+  const textWords = splitTextWords(segment.text);
+  if (textWords.length === 0) return words;
+
+  const segmentText = textWords.join(" ");
+  const wordsText = joinWordTexts(words);
+
+  if (segmentText === wordsText) return words;
+
+  if (textWords.length === words.length) {
+    return words.map((word, index) => ({
+      ...word,
+      word: textWords[index],
+    }));
+  }
+
+  return undefined;
+}
+
 /**
  * Apply duration clamping to a chunk's start/end times.
  */
@@ -147,7 +190,7 @@ export function splitSegmentsByWords(
   let segmentIndex = 0;
 
   for (const segment of segments) {
-    const words = segment.words;
+    const words = alignWordsWithSegmentText(segment);
 
     if (words && words.length > 0) {
       // ——— Word-level timestamps available — pause-based grouping ———
@@ -218,7 +261,7 @@ export function splitSegmentsByWords(
       }
     } else {
       // ——— No word timestamps — split text by words and interpolate ———
-      const textWords = segment.text.trim().split(/\s+/);
+      const textWords = splitTextWords(segment.text);
       if (textWords.length === 0) continue;
 
       const segDuration = Math.max(
