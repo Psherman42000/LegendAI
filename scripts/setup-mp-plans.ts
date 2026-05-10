@@ -7,6 +7,7 @@
  * Usage:
  *   npx tsx scripts/setup-mp-plans.ts create [--env=sandbox|production]
  *   npx tsx scripts/setup-mp-plans.ts verify [--env=sandbox|production]
+ *   npx tsx scripts/setup-mp-plans.ts debug [--env=sandbox|production]
  */
 
 import dotenv from "dotenv";
@@ -67,8 +68,56 @@ function getEnvMode(): "sandbox" | "production" {
   return value;
 }
 
-function getAppUrl(): string {
-  return process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+function getBackUrl(): string {
+  // MP requires a valid HTTPS URL for back_url
+  // Use legendai.online since the app is exposed via Cloudflare tunnel
+  return "https://legendai.online/billing";
+}
+
+// ---------------------------------------------------------------------------
+// Debug command: test API connectivity
+// ---------------------------------------------------------------------------
+
+async function handleDebug(): Promise<void> {
+  const mode = getEnvMode();
+  const token = process.env.MP_ACCESS_TOKEN;
+
+  if (!token) {
+    console.error("❌ MP_ACCESS_TOKEN is not set in environment.");
+    process.exit(1);
+  }
+
+  const trimmed = token.trim();
+  console.log(`Mode: ${mode}`);
+  console.log(`Token: ${trimmed.slice(0, 20)}...${trimmed.slice(-8)}`);
+  console.log(`Back URL: ${getBackUrl()}`);
+
+  // Try a raw fetch to test the API
+  try {
+    const response = await fetch("https://api.mercadopago.com/v1/preapproval_plan", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${trimmed}`,
+      },
+      body: JSON.stringify({
+        reason: "TEST — delete me",
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: "months",
+          transaction_amount: 5.0,
+          currency_id: "BRL",
+        },
+        back_url: "https://httpbin.org/anything",
+      }),
+    });
+
+    const body = await response.json();
+    console.log(`Status: ${response.status}`);
+    console.log(`Response: ${JSON.stringify(body, null, 2)}`);
+  } catch (err) {
+    console.error(`HTTP error: ${err}`);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -93,8 +142,7 @@ async function handleCreate(): Promise<void> {
     console.warn("⚠️  WARNING: MP_ACCESS_TOKEN starts with APP_USR, which looks like a sandbox token. Production tokens usually start with a different prefix.");
   }
 
-  const appUrl = getAppUrl();
-  const backUrl = `${appUrl}/billing`;
+  const backUrl = getBackUrl();
 
   const mpClient = new MercadoPagoConfig({
     accessToken: trimmed,
@@ -136,7 +184,7 @@ async function handleCreate(): Promise<void> {
 
       createdIds.push({ key: plan.key, id: planId, envVar: plan.envVar });
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : String(err);
+      const message = err instanceof Error ? err.message : JSON.stringify(err, null, 2);
       console.error(`  ❌ Failed to create ${plan.key}: ${message}`);
     }
   }
@@ -282,6 +330,7 @@ async function main(): Promise<void> {
     console.error("Usage:");
     console.error("  npx tsx scripts/setup-mp-plans.ts create [--env=sandbox|production]");
     console.error("  npx tsx scripts/setup-mp-plans.ts verify [--env=sandbox|production]");
+    console.error("  npx tsx scripts/setup-mp-plans.ts debug [--env=sandbox|production]");
     process.exit(1);
   }
 
@@ -292,8 +341,11 @@ async function main(): Promise<void> {
     case "verify":
       await handleVerify();
       break;
+    case "debug":
+      await handleDebug();
+      break;
     default:
-      console.error(`Unknown command: "${command}". Use "create" or "verify".`);
+      console.error(`Unknown command: "${command}". Use "create", "verify", or "debug".`);
       process.exit(1);
   }
 }
