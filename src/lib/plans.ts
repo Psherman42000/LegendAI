@@ -21,7 +21,7 @@ export const PLANS = {
   STARTER: {
     id: "STARTER",
     name: "Starter",
-    price: 2900,
+    price: 1000,
     videosPerMonth: 30,
     maxDurationSeconds: 1800,
     highlighted: false,
@@ -38,7 +38,7 @@ export const PLANS = {
   PRO: {
     id: "PRO",
     name: "Pro",
-    price: 5900,
+    price: 2500,
     videosPerMonth: 100,
     maxDurationSeconds: 7200,
     highlighted: true,
@@ -56,7 +56,7 @@ export const PLANS = {
   UNLIMITED: {
     id: "UNLIMITED",
     name: "Ilimitado",
-    price: 9900,
+    price: 5000,
     videosPerMonth: 999_999,
     maxDurationSeconds: 14_400,
     highlighted: false,
