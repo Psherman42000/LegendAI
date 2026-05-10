@@ -2,9 +2,25 @@ import crypto from "node:crypto";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { parseExternalReference, verificarAssinaturaMP, consultarPagamento } from "@/lib/mercadopago";
 import { sendLimitReachedEmail, sendWebhookNotification } from "@/lib/email";
+import type { PlanId } from "@/lib/plans";
+import { PLANS } from "@/lib/plans";
 
 function validarAssinaturaMP(request: Request, rawBody: string): boolean {
+  const secret = process.env.MP_WEBHOOK_SECRET;
+
+  // In development, allow webhooks without HMAC validation (with warning)
+  if (!secret && process.env.NODE_ENV === "development") {
+    console.warn("[webhook] MP_WEBHOOK_SECRET not set — skipping HMAC validation in development");
+    return true;
+  }
+
+  if (!secret) {
+    console.error("[webhook] MP_WEBHOOK_SECRET not set — rejecting webhook");
+    return false;
+  }
+
   const xSignature = request.headers.get("x-signature") ?? "";
   const xRequestId = request.headers.get("x-request-id") ?? "";
   const url = new URL(request.url);
@@ -19,11 +35,29 @@ function validarAssinaturaMP(request: Request, rawBody: string): boolean {
 
   const manifest = `id:${dataId};request-id:${xRequestId};ts:${ts};`;
   const hmac = crypto
-    .createHmac("sha256", process.env.MP_WEBHOOK_SECRET ?? "")
+    .createHmac("sha256", secret)
     .update(manifest)
     .digest("hex");
 
   return hmac === v1;
+}
+
+/**
+ * Map Mercado Pago preapproval status to our SubscriptionStatus enum.
+ */
+function mapMPStatusToSubscriptionStatus(mpStatus: string): "PENDING" | "ACTIVE" | "CANCELLED" | "PAUSED" {
+  switch (mpStatus) {
+    case "authorized":
+      return "ACTIVE";
+    case "pending":
+      return "PENDING";
+    case "cancelled":
+      return "CANCELLED";
+    case "paused":
+      return "PAUSED";
+    default:
+      return "PENDING";
+  }
 }
 
 export async function POST(request: Request) {
@@ -39,7 +73,13 @@ export async function POST(request: Request) {
     action?: string;
   };
 
-  const topic = payload.topic ?? payload.type ?? "";
+  let topic = payload.topic ?? payload.type ?? "";
+
+  // Normalise: MP sends "subscription_preapproval" for new subscriptions
+  if (topic === "subscription_preapproval") {
+    topic = "preapproval";
+  }
+
   const notificationId = payload.data?.id;
 
   // Idempotency: notificationId is required
@@ -70,52 +110,155 @@ export async function POST(request: Request) {
     throw error;
   }
 
-  if (topic === "payment") {
-    const paymentId = payload.data?.id ?? "";
-    const payment = await prisma.payment.findFirst({ where: { mpPaymentId: paymentId } });
-    if (payment) {
-      await prisma.payment.update({
-        where: { id: payment.id },
-        data: {
-          status: "PAID",
-          mpStatus: "approved",
-          paidAt: new Date(),
-        },
-      });
-      await sendWebhookNotification(`Pagamento avulso ${payment.id} aprovado.`);
-    }
-  }
-
+  // ─── Handle preapproval (subscription) notifications ───
   if (topic === "preapproval") {
-    const subscriptionId = payload.data?.id ?? "";
-    const subscription = await prisma.subscription.findFirst({ where: { mpSubscriptionId: subscriptionId } });
-    if (subscription) {
-      const user = await prisma.user.findUnique({ where: { id: subscription.userId } });
+    const mpPreapprovalId = notificationId;
+
+    // Verify with MP API before trusting the payload
+    let mpStatus: string;
+    try {
+      const mpSubscription = await verificarAssinaturaMP(mpPreapprovalId);
+      mpStatus = mpSubscription.status ?? "pending";
+    } catch (err) {
+      console.error("[webhook] Failed to verify subscription with MP API:", err);
+      // Still process with the payload status as fallback
+      mpStatus = "pending";
+    }
+
+    const subscriptionStatus = mapMPStatusToSubscriptionStatus(mpStatus);
+
+    // Try to find existing subscription by mpSubscriptionId
+    const existing = await prisma.subscription.findFirst({
+      where: { mpSubscriptionId: mpPreapprovalId },
+    });
+
+    if (existing) {
+      // Update existing subscription
       await prisma.subscription.update({
-        where: { id: subscription.id },
+        where: { id: existing.id },
         data: {
-          cancelAtPeriodEnd: false,
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          status: subscriptionStatus,
+          cancelAtPeriodEnd: mpStatus === "cancelled",
+          cancelledAt: mpStatus === "cancelled" ? new Date() : null,
+          currentPeriodEnd: mpStatus === "authorized"
+            ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            : undefined,
         },
       });
-      if (user?.email) {
-        await sendWebhookNotification(`Assinatura ${subscription.id} autorizada para ${user.email}.`);
+
+      if (subscriptionStatus === "ACTIVE") {
+        const user = await prisma.user.findUnique({ where: { id: existing.userId } });
+        if (user?.email) {
+          await sendWebhookNotification(
+            `Assinatura ${existing.id} autorizada para ${user.email} (plano ${existing.plan}).`,
+          );
+        }
+      }
+    } else {
+      // New subscription — create from external_reference
+      // The external_reference was set as "userId:planId" during checkout
+      // For preapproval notifications, we need to get the external_reference from MP API
+      let userId: string | undefined;
+      let planId: PlanId | undefined;
+
+      try {
+        const mpSubscription = await verificarAssinaturaMP(mpPreapprovalId);
+        const externalRef = mpSubscription.external_reference;
+        if (externalRef) {
+          const parsed = parseExternalReference(externalRef);
+          if (parsed) {
+            userId = parsed.userId;
+            planId = parsed.planId as PlanId;
+          }
+        }
+
+        if (userId && planId && PLANS[planId]) {
+          await prisma.subscription.upsert({
+            where: { userId },
+            create: {
+              userId,
+              plan: planId,
+              mpSubscriptionId: mpPreapprovalId,
+              status: subscriptionStatus,
+              currentPeriodEnd: mpStatus === "authorized"
+                ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                : undefined,
+            },
+            update: {
+              plan: planId,
+              mpSubscriptionId: mpPreapprovalId,
+              status: subscriptionStatus,
+              cancelAtPeriodEnd: false,
+              cancelledAt: null,
+              currentPeriodEnd: mpStatus === "authorized"
+                ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                : undefined,
+            },
+          });
+
+          if (subscriptionStatus === "ACTIVE") {
+            const user = await prisma.user.findUnique({ where: { id: userId } });
+            if (user?.email) {
+              await sendWebhookNotification(
+                `Nova assinatura autorizada para ${user.email} (plano ${planId}).`,
+              );
+            }
+          }
+        } else {
+          console.error("[webhook] Cannot create subscription: missing or invalid external_reference", {
+            mpPreapprovalId,
+            externalRef,
+          });
+        }
+      } catch (err) {
+        console.error("[webhook] Error processing new preapproval:", err);
       }
     }
   }
 
-  if (topic === "subscription_authorized_payment") {
-    const subscriptionId = payload.data?.id ?? "";
-    const subscription = await prisma.subscription.findFirst({ where: { mpSubscriptionId: subscriptionId } });
-    if (subscription) {
-      const user = await prisma.user.findUnique({ where: { id: subscription.userId } });
-      await sendLimitReachedEmail({
-        userEmail: user?.email ?? "oi@legendaai.com.br",
-        userName: user?.name ?? "Usuário",
-        plan: subscription.plan,
-        upgradeUrl: "/billing",
-      });
+  // ─── Handle payment (avulso) notifications ───
+  if (topic === "payment") {
+    const paymentId = notificationId;
+
+    // Verify with MP API before trusting the payload
+    let mpPaymentStatus: string;
+    try {
+      const mpPayment = await consultarPagamento(paymentId);
+      mpPaymentStatus = mpPayment.status ?? "pending";
+    } catch (err) {
+      console.error("[webhook] Failed to verify payment with MP API:", err);
+      mpPaymentStatus = "pending";
     }
+
+    const payment = await prisma.payment.findFirst({ where: { mpPaymentId: paymentId } });
+    if (payment) {
+      const updateData: Record<string, unknown> = {
+        mpStatus: mpPaymentStatus,
+      };
+
+      if (mpPaymentStatus === "approved") {
+        updateData.status = "PAID";
+        updateData.paidAt = new Date();
+      } else if (mpPaymentStatus === "rejected" || mpPaymentStatus === "cancelled") {
+        updateData.status = "FAILED";
+      }
+
+      await prisma.payment.update({
+        where: { id: payment.id },
+        data: updateData as Parameters<typeof prisma.payment.update>[0]["data"],
+      });
+
+      if (mpPaymentStatus === "approved") {
+        await sendWebhookNotification(`Pagamento avulso ${payment.id} aprovado.`);
+      }
+    }
+  }
+
+  // ─── Handle subscription_authorized_payment (recurring charge confirmation) ───
+  if (topic === "subscription_authorized_payment") {
+    // This topic confirms a recurring payment was processed for an active subscription
+    // We already handle the preapproval status above, so just log it
+    console.log("[webhook] subscription_authorized_payment received:", notificationId);
   }
 
   return NextResponse.json({ ok: true });
