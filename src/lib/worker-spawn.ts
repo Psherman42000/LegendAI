@@ -36,7 +36,7 @@ export function buildWorkerSpawnCommand({
     command: nodePath,
     args: [
       path.join(cwd, "node_modules", "tsx", "dist", "cli.mjs"),
-      "--env-file=.env.local",
+      `--env-file=.env.${process.env.NODE_ENV === "production" ? "production" : "local"}`,
       path.join(cwd, "src", "workers", "videoProcessor.ts"),
     ],
   };

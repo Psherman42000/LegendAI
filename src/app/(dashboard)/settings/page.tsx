@@ -10,8 +10,8 @@ export default function SettingsPage() {
 
   if (status === "loading") {
     return (
-      <main className="p-6 lg:p-10">
-        <div className="mx-auto max-w-2xl">
+      <main className="px-4 py-6 md:px-6 md:py-8 lg:p-10">
+        <div className="mx-auto max-w-2xl px-0 sm:px-0">
           <div className="h-8 w-48 animate-pulse rounded bg-white/5" />
           <div className="mt-2 h-4 w-72 animate-pulse rounded bg-white/5" />
           <div className="mt-8 space-y-4">
@@ -26,9 +26,9 @@ export default function SettingsPage() {
   const user = session?.user;
 
   return (
-    <main className="p-6 lg:p-10">
-      <div className="mx-auto max-w-2xl">
-        <h1 className="text-display text-3xl font-bold text-[var(--text)]">Configurações</h1>
+    <main className="px-4 py-6 md:px-6 md:py-8 lg:p-10">
+      <div className="mx-auto max-w-2xl px-0 sm:px-0">
+        <h1 className="text-display text-xl font-bold md:text-2xl lg:text-3xl text-[var(--text)]">Configurações</h1>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">
           Gerencie seu perfil, preferências e notificações.
         </p>
@@ -73,7 +73,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium text-[var(--text)]">Tema</p>
                 <p className="text-xs text-[var(--text-secondary)]">Escuro / Claro</p>
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-2 sm:flex-row">
                 <Button variant="outline" disabled className="pointer-events-none opacity-50">
                   Claro
                 </Button>
@@ -132,7 +132,7 @@ export default function SettingsPage() {
             <Button
               variant="outline"
               disabled
-              className="pointer-events-none border-red-500/30 text-red-400 opacity-50"
+              className="w-full min-h-[44px] pointer-events-none border-red-500/30 text-red-400 opacity-50 sm:w-auto"
             >
               Excluir conta
             </Button>

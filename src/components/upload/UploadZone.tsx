@@ -54,15 +54,15 @@ export function UploadZone() {
   return (
     <div className="space-y-6">
       {!uploadedVideo ? (
-        <div className="surface rounded-[var(--radius)] p-6">
+        <div className="surface rounded-[var(--radius)] p-4 sm:p-6">
           <div className="flex flex-col gap-4">
             <label
-              className={`flex min-h-56 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 p-8 text-center ${
+              className={`flex min-h-40 sm:min-h-56 flex-col items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/3 p-6 sm:p-8 text-center ${
                 isDisabled ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-[rgba(170,255,0,0.35)]"
               }`}
             >
-              <div className="text-lg font-semibold">Arraste seu vídeo aqui</div>
-              <div className="mt-2 text-sm text-[var(--text-secondary)]">
+              <div className="text-base font-semibold sm:text-lg">Arraste seu vídeo aqui</div>
+              <div className="mt-2 text-xs text-[var(--text-secondary)] sm:text-sm">
                 mp4, mov, webm ou avi. Até 2GB.
               </div>
               {isUploading && (
@@ -100,10 +100,10 @@ export function UploadZone() {
               Usar correção com IA (melhora a qualidade das legendas)
             </label>
 
-            <div className="grid gap-3 md:grid-cols-[1fr_auto]">
+            <div className="grid gap-3 grid-cols-1 md:grid-cols-[1fr_auto]">
               <input
                 ref={urlInputRef}
-                className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm outline-none disabled:opacity-50"
+                className="h-11 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-4 text-sm outline-none disabled:opacity-50 text-base"
                 placeholder="Cole uma URL do YouTube ou TikTok"
                 disabled={isDisabled}
                 onKeyDown={(event) => {

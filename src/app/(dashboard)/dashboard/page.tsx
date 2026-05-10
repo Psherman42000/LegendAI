@@ -52,9 +52,11 @@ export default async function DashboardPage() {
   const plan = PLANS[planName as keyof typeof PLANS];
   const planPrice = plan?.price ?? 0;
 
+  const wrapperClass = "space-y-6 px-4 py-6 md:space-y-8 md:px-6 md:py-8 lg:p-10";
+
   if (error) {
     return (
-      <main className="space-y-8 p-6 lg:p-10">
+      <main className={wrapperClass}>
         <Header title="Dashboard" description="Não foi possível carregar os dados. Tente novamente mais tarde." />
         <div className="rounded-xl bg-red-500/10 p-6 text-red-400">
           Erro ao carregar dados do dashboard. Verifique sua conexão ou tente novamente.
@@ -64,7 +66,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <main className="space-y-8 p-6 lg:p-10">
+    <main className={wrapperClass}>
       <Header
         title="Dashboard"
         description="Monitore vídeos, minutos processados, renovação e status em um único lugar."

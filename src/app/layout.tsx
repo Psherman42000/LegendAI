@@ -3,13 +3,13 @@ import "./globals.css";
 import { NextAuthProvider } from "@/components/auth/NextAuthProvider";
 
 export const metadata: Metadata = {
-  title: "LegendaAI",
+  title: "Legendai",
   description: "Legendas em português BR com IA, pagamento em reais e fluxo pronto para mobile.",
-  metadataBase: new URL("https://legendaai.com.br"),
-  applicationName: "LegendaAI",
-  authors: [{ name: "LegendaAI" }],
+  metadataBase: new URL("https://legendai.com.br"),
+  applicationName: "Legendai",
+  authors: [{ name: "Legendai" }],
   openGraph: {
-    title: "LegendaAI",
+    title: "Legendai",
     description: "Legendas em português BR. Sem erro. Sem dólar.",
     type: "website",
   },

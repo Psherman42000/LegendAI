@@ -32,7 +32,7 @@ export function PlanCard({
             <li key={feature}>• {feature}</li>
           ))}
         </ul>
-        <Button className="w-full">{highlighted ? "Assinar agora" : "Selecionar"}</Button>
+        <Button className="w-full min-h-[44px]">{highlighted ? "Assinar agora" : "Selecionar"}</Button>
       </CardContent>
     </Card>
   );

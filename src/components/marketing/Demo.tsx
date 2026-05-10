@@ -13,7 +13,7 @@ export function Demo() {
           Veja como funciona
         </h2>
         <p className="mx-auto mt-4 max-w-2xl text-[var(--text-secondary)]">
-          Assista ao vídeo abaixo para ver como o LegendaAI gera legendas precisas em português brasileiro em segundos.
+          Assista ao vídeo abaixo para ver como o Legendai gera legendas precisas em português brasileiro em segundos.
         </p>
         <div className="surface mx-auto mt-10 max-w-4xl overflow-hidden rounded-[24px] p-5">
           <div className="aspect-video flex items-center justify-center rounded-[20px] border border-white/5 bg-[radial-gradient(circle_at_top,rgba(170,255,0,0.12),transparent_60%),linear-gradient(180deg,#111,#050505)]">

@@ -1,4 +1,5 @@
 import { MercadoPagoConfig, Payment, PreApproval, Preference } from "mercadopago";
+import type { PreApprovalResponse } from "mercadopago/dist/clients/preApproval/commonTypes";
 import type { PlanId } from "./plans";
 import { PLANS, calcularPrecoAvulso } from "./plans";
 
@@ -27,20 +28,26 @@ export async function criarAssinatura(data: {
 }): Promise<{ initPoint: string; subscriptionId: string }> {
   const plan = PLANS[data.planId];
   if (!plan.mpPlanId) {
-    return {
-      initPoint: data.backUrl,
-      subscriptionId: `local-${data.userId}-${data.planId}`,
-    };
+    throw new Error(
+      `Plano ${data.planId} não configurado no Mercado Pago. Configure MP_PLAN_${data.planId}_ID no .env`,
+    );
   }
 
-  const preapproval = await preApprovalClient.create({
-    body: {
-      preapproval_plan_id: plan.mpPlanId,
-      payer_email: data.userEmail,
-      back_url: data.backUrl,
-      external_reference: data.userId,
-    },
-  });
+  let preapproval: PreApprovalResponse;
+  try {
+    preapproval = await preApprovalClient.create({
+      body: {
+        preapproval_plan_id: plan.mpPlanId,
+        payer_email: data.userEmail,
+        back_url: data.backUrl,
+        external_reference: `${data.userId}:${data.planId}`,
+      },
+    });
+  } catch (err) {
+    throw new Error(
+      `Erro ao criar assinatura no Mercado Pago: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
 
   return {
     initPoint: preapproval.init_point ?? data.backUrl,
@@ -81,7 +88,7 @@ export async function criarPagamentoAvulso(data: {
     const payment = await paymentClient.create({
       body: {
         transaction_amount: amount,
-        description: `LegendaAI — vídeo avulso (${Math.ceil(data.durationSeconds / 60)} min)`,
+        description: `Legendai — vídeo avulso (${Math.ceil(data.durationSeconds / 60)} min)`,
         payment_method_id: "pix",
         payer: {
           email: data.userEmail,
@@ -107,7 +114,7 @@ export async function criarPagamentoAvulso(data: {
       items: [
         {
           id: data.paymentId,
-          title: `LegendaAI — vídeo avulso (${Math.ceil(data.durationSeconds / 60)} min)`,
+          title: `Legendai — vídeo avulso (${Math.ceil(data.durationSeconds / 60)} min)`,
           quantity: 1,
           unit_price: amount,
           currency_id: "BRL",
@@ -119,9 +126,9 @@ export async function criarPagamentoAvulso(data: {
       external_reference: data.paymentId,
       notification_url: data.notificationUrl,
       back_urls: {
-        success: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/dashboard?payment=success`,
-        failure: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/billing?payment=failed`,
-        pending: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/billing?payment=pending`,
+        success: `${process.env.PUBLIC_URL ?? "https://legendai.online"}/dashboard?payment=success`,
+        failure: `${process.env.PUBLIC_URL ?? "https://legendai.online"}/billing?payment=failed`,
+        pending: `${process.env.PUBLIC_URL ?? "https://legendai.online"}/billing?payment=pending`,
       },
       auto_return: "approved",
     },
@@ -138,5 +145,27 @@ export async function consultarPagamento(mpPaymentId: string) {
 }
 
 export async function consultarAssinatura(mpSubscriptionId: string) {
+  return preApprovalClient.get({ id: mpSubscriptionId });
+}
+
+/**
+ * Parse the external_reference format "userId:planId" back into its parts.
+ * Returns null if the format is invalid.
+ */
+export function parseExternalReference(
+  externalReference: string,
+): { userId: string; planId: string } | null {
+  const parts = externalReference.split(":");
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return null;
+  }
+  return { userId: parts[0], planId: parts[1] };
+}
+
+/**
+ * Verify a subscription's status directly with the Mercado Pago API.
+ * Returns the raw PreApproval response from MP.
+ */
+export async function verificarAssinaturaMP(mpSubscriptionId: string) {
   return preApprovalClient.get({ id: mpSubscriptionId });
 }

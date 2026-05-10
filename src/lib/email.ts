@@ -22,7 +22,7 @@ function baseTemplate(title: string, body: string): string {
       <div style="max-width:600px;margin:0 auto;background:#141414;border:1px solid #2a2a2a;border-radius:16px;padding:32px">
         <p style="margin:0 0 12px;color:#aaff00;font-weight:700;letter-spacing:.04em;text-transform:uppercase">${title}</p>
         <div style="font-size:18px;line-height:1.6">${body}</div>
-        <p style="margin-top:28px;color:#888">LegendaAI • feito com 🇧🇷 para criadores brasileiros</p>
+        <p style="margin-top:28px;color:#888">Legendai • feito com 🇧🇷 para criadores brasileiros</p>
       </div>
     </body>
   </html>`;
@@ -32,9 +32,9 @@ export async function sendWelcomeEmail(user: { name: string; email: string }): P
   const client = getResend();
   if (!client) return;
   await client.emails.send({
-    from: process.env.EMAIL_FROM ?? "LegendaAI <oi@legendaai.com.br>",
+    from: process.env.EMAIL_FROM ?? "Legendai <oi@legendai.com.br>",
     to: user.email,
-    subject: "Bem-vindo ao LegendaAI",
+    subject: "Bem-vindo ao Legendai",
     html: baseTemplate("Boas-vindas", `<p>Oi, ${user.name}. Sua conta está pronta.</p>`),
   });
 }
@@ -48,7 +48,7 @@ export async function sendVideoReadyEmail(data: {
   const client = getResend();
   if (!client) return;
   await client.emails.send({
-    from: process.env.EMAIL_FROM ?? "LegendaAI <oi@legendaai.com.br>",
+    from: process.env.EMAIL_FROM ?? "Legendai <oi@legendai.com.br>",
     to: data.userEmail,
     subject: `Seu vídeo "${data.videoTitle}" está pronto`,
     html: baseTemplate(
@@ -70,7 +70,7 @@ export async function sendAvulsoReceiptEmail(data: {
   const client = getResend();
   if (!client) return;
   await client.emails.send({
-    from: process.env.EMAIL_FROM ?? "LegendaAI <oi@legendaai.com.br>",
+    from: process.env.EMAIL_FROM ?? "Legendai <oi@legendai.com.br>",
     to: data.userEmail,
     subject: "Recebemos seu pagamento avulso",
     html: baseTemplate(
@@ -90,7 +90,7 @@ export async function sendLimitReachedEmail(data: {
   const client = getResend();
   if (!client) return;
   await client.emails.send({
-    from: process.env.EMAIL_FROM ?? "LegendaAI <oi@legendaai.com.br>",
+    from: process.env.EMAIL_FROM ?? "Legendai <oi@legendai.com.br>",
     to: data.userEmail,
     subject: "Seu plano atingiu o limite",
     html: baseTemplate(
@@ -105,9 +105,9 @@ export async function sendWebhookNotification(message: string): Promise<void> {
   const client = getResend();
   if (!client) return;
   await client.emails.send({
-    from: process.env.EMAIL_FROM ?? "LegendaAI <oi@legendaai.com.br>",
-    to: process.env.EMAIL_FROM ?? "oi@legendaai.com.br",
-    subject: "LegendaAI webhook",
+    from: process.env.EMAIL_FROM ?? "Legendai <oi@legendai.com.br>",
+    to: process.env.EMAIL_FROM ?? "oi@legendai.com.br",
+    subject: "Legendai webhook",
     html: baseTemplate("Webhook", `<p>${message}</p>`),
   });
 }

@@ -5,7 +5,7 @@ import { generateSRT, generateVTT } from "@/lib/subtitle-styles";
 import type { SubtitleSegment } from "@/types/subtitle";
 
 const INITIAL_SEGMENTS: SubtitleSegment[] = [
-  { id: "1", start: 0, end: 2.5, text: "esse é o LegendaAI" },
+  { id: "1", start: 0, end: 2.5, text: "esse é o Legendai" },
   { id: "2", start: 2.5, end: 5, text: "feito para o português brasileiro" },
 ];
 

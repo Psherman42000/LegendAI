@@ -9,15 +9,18 @@ export function SubtitleSegment({
   onJump?: (time: number) => void;
 }) {
   return (
-    <button
-      type="button"
-      className="surface-soft w-full rounded-xl p-4 text-left transition hover:border-[rgba(170,255,0,0.25)]"
-      onClick={() => onJump?.(segment.start)}
-    >
-      <div className="text-xs text-[var(--text-secondary)]">
-        {segment.start.toFixed(1)}s → {segment.end.toFixed(1)}s
-      </div>
-      <Input defaultValue={segment.text} className="mt-3" />
-    </button>
+    <div className="surface-soft w-full rounded-xl p-4">
+      <button
+        type="button"
+        onClick={() => onJump?.(segment.start)}
+        className="w-full text-left min-h-[44px]"
+        aria-label={`Jump to ${segment.start.toFixed(1)}s`}
+      >
+        <div className="text-xs text-[var(--text-secondary)]">
+          {segment.start.toFixed(1)}s → {segment.end.toFixed(1)}s
+        </div>
+      </button>
+      <Input defaultValue={segment.text} className="mt-3 w-full text-base" />
+    </div>
   );
 }

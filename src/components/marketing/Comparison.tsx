@@ -6,7 +6,7 @@ export function Comparison() {
           <thead className="bg-white/5 text-[var(--text-secondary)]">
             <tr>
               <th className="px-6 py-4">Feature</th>
-              <th className="px-6 py-4">LegendaAI</th>
+              <th className="px-6 py-4">Legendai</th>
               <th className="px-6 py-4">CapCut</th>
               <th className="px-6 py-4">Submagic</th>
             </tr>

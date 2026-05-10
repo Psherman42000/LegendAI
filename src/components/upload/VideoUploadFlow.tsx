@@ -48,6 +48,11 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
   }, [videoId]);
 
   const updateProgress = (status: string) => {
+    if (status === "ERROR") {
+      setCurrentStep(0);
+      setProgress(0);
+      return;
+    }
     const stepMap: Record<string, number> = {
       UPLOADING: 0,
       QUEUED: 1,
@@ -57,7 +62,6 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
       BURNING: 4,
       UPLOADING_OUTPUTS: 4,
       READY: 5,
-      ERROR: -1,
     };
 
     const step = stepMap[status] ?? 0;
@@ -146,13 +150,13 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
         {!isReady && !isError && (
           <div className="space-y-4">
             {!isProcessing ? (
-              <div className="flex flex-col items-center gap-4">
+              <div className="flex flex-col items-center gap-4 px-2">
                 <p className="text-center text-sm text-[var(--text-secondary)]">
                   Seu vídeo foi enviado com sucesso! Clique abaixo para iniciar o processamento das legendas.
                 </p>
                 <Button
                   onClick={handleStartProcessing}
-                  className="animate-pulse bg-[var(--primary)] px-8 py-6 text-lg font-bold text-black hover:bg-[var(--primary)]/90"
+                  className="animate-pulse bg-[var(--primary)] px-8 py-6 text-lg font-bold text-black hover:bg-[var(--primary)]/90 min-h-[48px]"
                 >
                   <svg className="mr-2 size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5.25 5.653c0-.856.917-1.398 1.667-.986l11.54 6.348a1.125 1.125 0 010 1.971l-11.54 6.347a1.125 1.125 0 01-1.667-.985V5.653z" />
@@ -174,7 +178,7 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
                     style={{ width: `${progress}%` }}
                   />
                 </div>
-                <div className="grid grid-cols-5 gap-1">
+                <div className="grid grid-cols-5 gap-1 sm:grid-cols-5">
                   {PROCESSING_STEPS.map((step, index) => (
                     <div
                       key={step.label}
@@ -199,7 +203,7 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
             <div className="rounded-lg bg-[var(--primary)]/10 px-4 py-3 text-center">
               <p className="font-medium text-[var(--primary)]">✓ Legendas geradas com sucesso!</p>
             </div>
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link href={`/videos/${videoId}`} className="flex-1">
                 <Button className="w-full">
                   <svg className="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -209,7 +213,7 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
                 </Button>
               </Link>
               {video?.processedUrl && (
-                <a href={video.processedUrl} download className="flex-1">
+                <a href={`/api/videos/${videoId}/download?type=video`} className="flex-1">
                   <Button variant="outline" className="w-full">
                     <svg className="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
@@ -220,7 +224,7 @@ export function VideoUploadFlow({ videoId, videoUrl, videoTitle, duration }: Vid
               )}
             </div>
             {video?.srtUrl && (
-              <a href={video.srtUrl} download className="block text-center">
+              <a href={`/api/videos/${videoId}/download?type=srt`} className="block text-center">
                 <Button variant="ghost" className="text-xs text-[var(--text-secondary)]">
                   <svg className="mr-1 size-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />

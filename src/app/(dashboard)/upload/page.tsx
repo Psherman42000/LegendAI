@@ -8,9 +8,9 @@ export default function UploadPage() {
   const { plan, isAtLimit, isLoading: isPlanLoading } = usePlan();
 
   return (
-    <main className="space-y-8 p-6 lg:p-10">
+    <main className="space-y-6 px-4 py-6 md:space-y-8 md:px-6 md:py-8 lg:p-10">
       <header className="space-y-3">
-        <h1 className="text-display text-3xl font-bold">Upload</h1>
+        <h1 className="text-display text-xl font-bold md:text-2xl lg:text-3xl">Upload</h1>
         <p className="text-sm text-[var(--text-secondary)]">
           Envie um arquivo ou cole uma URL. O processamento acontece no worker, fora da Vercel.
         </p>

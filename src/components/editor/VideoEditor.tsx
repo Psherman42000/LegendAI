@@ -54,16 +54,16 @@ export function VideoEditor() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-display text-2xl font-bold">{video.title}</h1>
+          <h1 className="text-display text-xl font-bold md:text-2xl">{video.title}</h1>
           <p className="mt-1 text-sm text-[var(--text-secondary)]">
             Status: <span className={isReady ? "text-green-400" : "text-yellow-400"}>{video.status}</span>
           </p>
         </div>
         <div className="flex gap-3">
           <Link href="/dashboard">
-            <Button variant="outline">← Dashboard</Button>
+            <Button variant="outline" className="min-h-[44px]">← Dashboard</Button>
           </Link>
         </div>
       </div>
@@ -88,10 +88,10 @@ export function VideoEditor() {
 
       {/* Actions */}
       {isReady && (
-        <div className="flex flex-wrap gap-3">
+        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
           {video.processedUrl && (
-            <a href={video.processedUrl} download>
-              <Button>
+            <a href={`/api/videos/${videoId}/download?type=video`}>
+              <Button className="w-full min-h-[44px] sm:w-auto">
                 <svg className="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>
@@ -100,8 +100,8 @@ export function VideoEditor() {
             </a>
           )}
           {video.srtUrl && (
-            <a href={video.srtUrl} download>
-              <Button variant="outline">
+            <a href={`/api/videos/${videoId}/download?type=srt`}>
+              <Button variant="outline" className="w-full min-h-[44px] sm:w-auto">
                 <svg className="mr-2 size-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
                 </svg>

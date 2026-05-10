@@ -88,7 +88,7 @@ export default async function VideosPage({
   }
 
   return (
-    <main className="space-y-8 p-6 lg:p-10">
+    <main className="space-y-6 px-4 py-6 md:space-y-8 md:px-6 md:py-8 lg:p-10">
       <Header
         title="Meus vídeos"
         description="Lista paginada dos uploads e trabalhos exportados."

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { getSignedUrlFromAny } from "@/lib/r2";
 
 type Params = { params: Promise<{ id: string }> };
 
@@ -54,5 +55,16 @@ export async function GET(_request: Request, { params }: Params) {
     return NextResponse.json({ ok: false, error: "Vídeo processado indisponível" }, { status: 404 });
   }
 
-  return NextResponse.redirect(video.processedUrl);
+  // Generate a signed URL with Content-Disposition: attachment so the browser
+  // triggers a download instead of playing the video inline.
+  const safeTitle = (video.title || "video").replace(/[^a-zA-Z0-9_\-\u00C0-\u00FF ]/g, "_");
+  const signedUrl = await getSignedUrlFromAny(video.processedUrl, {
+    contentDisposition: `attachment; filename="${safeTitle}.mp4"`,
+  });
+
+  if (!signedUrl) {
+    return NextResponse.json({ ok: false, error: "Erro ao gerar URL de download" }, { status: 500 });
+  }
+
+  return NextResponse.redirect(signedUrl);
 }

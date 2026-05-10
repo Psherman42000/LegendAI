@@ -145,7 +145,7 @@ function VideoListView({
 
   if (loading) {
     return (
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, i) => (
           <Card key={i} className="animate-pulse overflow-hidden">
             <div className="aspect-video bg-[var(--surface-2)]" />
@@ -179,7 +179,7 @@ function VideoListView({
             placeholder="Buscar por título..."
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            className="max-w-md"
+            className="max-w-md text-base"
           />
           <button type="submit" className={secondaryActionClass}>
             Buscar
@@ -228,7 +228,7 @@ function VideoListView({
           )}
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-3">
           {videos.map((video) => (
             <Card
               key={video.id}
@@ -297,19 +297,17 @@ function VideoListView({
                   >
                     Detalhes
                   </Link>
-                  {video.processedUrl && (
+                  {video.status === "READY" && (
                     <a
-                      href={video.processedUrl}
-                      download
+                      href={`/api/videos/${video.id}/download?type=video`}
                       className={`flex-1 text-xs ${outlineActionClass}`}
                     >
                       Vídeo
                     </a>
                   )}
-                  {video.srtUrl && (
+                  {video.status === "READY" && video.transcription && (
                     <a
-                      href={video.srtUrl}
-                      download
+                      href={`/api/videos/${video.id}/download?type=srt`}
                       className={`flex-1 text-xs ${outlineActionClass}`}
                     >
                       SRT

@@ -22,9 +22,9 @@ export function Sidebar() {
   const { videosUsed, videosLimit } = usePlan();
 
   return (
-    <aside className="surface sticky top-0 flex h-screen w-full max-w-[280px] flex-col border-r border-white/5 p-6">
+    <aside className="surface sticky top-0 hidden h-screen w-full max-w-[280px] flex-col border-r border-white/5 p-6 lg:flex">
       <div>
-        <div className="text-display text-2xl font-bold tracking-tight text-[var(--primary)]">LegendaAI</div>
+        <div className="text-display text-2xl font-bold tracking-tight text-[var(--primary)]">Legendai</div>
         <p className="mt-2 text-sm text-[var(--text-secondary)]">Legenda automática em português brasileiro.</p>
       </div>
       <nav className="mt-8 flex flex-col gap-2">

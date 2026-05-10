@@ -3,7 +3,7 @@ import { PLANS } from "@/lib/plans";
 
 export function PricingTable() {
   return (
-    <div className="grid gap-4 xl:grid-cols-4">
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
       <PlanCard plan="FREE" price={PLANS.FREE.price} features={PLANS.FREE.features} />
       <PlanCard plan="STARTER" price={PLANS.STARTER.price} features={PLANS.STARTER.features} highlighted />
       <PlanCard plan="PRO" price={PLANS.PRO.price} features={PLANS.PRO.features} />

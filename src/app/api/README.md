@@ -1,6 +1,6 @@
-# LegendaAI API
+# Legendai API
 
-Base URL: https://legendaai.com.br/api
+Base URL: https://legendai.com.br/api
 
 ## Autenticação
 Todas as rotas protegidas requerem header:

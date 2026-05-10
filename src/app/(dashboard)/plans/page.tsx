@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { PlansList } from "./PlansList";
 
 export const metadata = {
-  title: "Planos — LegendaAI",
+  title: "Planos — Legendai",
 };
 
 export default async function PlansPage() {

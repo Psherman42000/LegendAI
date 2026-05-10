@@ -15,8 +15,8 @@ const items = [
 
 export function Features() {
   return (
-    <section className="mx-auto max-w-7xl px-6 py-24 lg:px-10">
-      <div className="grid gap-4 lg:grid-cols-3">
+    <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-10 lg:py-24">
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {items.map((item) => (
           <div key={item.title} className="surface rounded-[var(--radius)] p-6">
             <div className="text-xl font-semibold">{item.title}</div>

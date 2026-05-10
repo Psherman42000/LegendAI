@@ -41,7 +41,7 @@ export async function POST(request: Request) {
     paymentId: payment.id,
     durationSeconds: body.durationSeconds,
     method: body.paymentMethod === "PIX" ? "PIX" : "CARD",
-    notificationUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/billing/webhook/mercadopago`,
+    notificationUrl: `${process.env.PUBLIC_URL ?? "https://legendai.online"}/api/billing/webhook/mercadopago`,
   });
 
   await prisma.payment.update({

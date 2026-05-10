@@ -42,9 +42,11 @@ export function VideoPagination({ pagination, search }: VideoPaginationProps) {
       <p className="text-sm text-[var(--text-secondary)]">
         Mostrando {fromCount}–{toCount} de {total} vídeos
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center justify-center gap-2">
         <Link
           href={getPageUrl(page - 1)}
+          aria-disabled={page <= 1}
+          tabIndex={page <= 1 ? -1 : 0}
           className={cn(
             "inline-flex h-10 items-center rounded-xl border border-[var(--border)] px-4 text-sm font-medium transition hover:border-[rgba(170,255,0,0.24)] hover:bg-white/5",
             page <= 1 && "pointer-events-none opacity-40"
@@ -81,6 +83,8 @@ export function VideoPagination({ pagination, search }: VideoPaginationProps) {
 
         <Link
           href={getPageUrl(page + 1)}
+          aria-disabled={page >= totalPages}
+          tabIndex={page >= totalPages ? -1 : 0}
           className={cn(
             "inline-flex h-10 items-center rounded-xl border border-[var(--border)] px-4 text-sm font-medium transition hover:border-[rgba(170,255,0,0.24)] hover:bg-white/5",
             page >= totalPages && "pointer-events-none opacity-40"
@@ -102,13 +106,16 @@ function PageLink({
   current: number;
   getUrl: (page: number) => string;
 }) {
+  const isCurrent = page === current;
   return (
     <Link
       href={getUrl(page)}
+      aria-current={isCurrent ? "page" : undefined}
+      tabIndex={isCurrent ? -1 : 0}
       className={cn(
         "inline-flex h-10 w-10 items-center justify-center rounded-xl border text-sm font-medium transition",
-        page === current
-          ? "border-[rgba(170,255,0,0.4)] bg-[rgba(170,255,0,0.08)] text-[var(--primary)]"
+        isCurrent
+          ? "border-[rgba(170,255,0,0.4)] bg-[rgba(170,255,0,0.08)] text-[var(--primary)] pointer-events-none"
           : "border-[var(--border)] hover:border-[rgba(170,255,0,0.24)] hover:bg-white/5"
       )}
     >

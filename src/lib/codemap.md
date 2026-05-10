@@ -2,7 +2,7 @@
 
 ## Responsibility
 
-The core service layer for the LegendaAI subtitle-processing pipeline. This directory encapsulates all infrastructure integrations, domain logic, and external API clients that underpin the application's primary workflow: video upload → audio extraction → transcription → segmentation → AI correction → subtitle styling → artifact export.
+The core service layer for the Legendai subtitle-processing pipeline. This directory encapsulates all infrastructure integrations, domain logic, and external API clients that underpin the application's primary workflow: video upload → audio extraction → transcription → segmentation → AI correction → subtitle styling → artifact export.
 
 It acts as a **facade over heterogeneous infrastructure** — presenting a unified, environment-agnostic API surface to consumers (API routes, server components, workers) while managing 8+ external service integrations (NextAuth, Prisma/PostgreSQL, BullMQ/Redis, FFmpeg, Whisper, OpenAI, Google Gemini, Resend, Mercado Pago, Cloudflare R2, OpenCode SDK, node-llama-cpp, wink-nlp).
 

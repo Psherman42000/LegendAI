@@ -61,10 +61,14 @@ export async function deleteFromR2(key: string): Promise<void> {
 /**
  * Generate a presigned URL for downloading an object from R2.
  * This allows private buckets to serve files without making them fully public.
+ *
+ * @param contentDisposition — if set (e.g. `attachment; filename="video.mp4"`),
+ *   R2 will include the Content-Disposition header in the response, forcing download.
  */
 export async function getSignedDownloadUrl(
   key: string,
   expiresInSeconds = 3600,
+  contentDisposition?: string,
 ): Promise<string> {
   if (!process.env.R2_ENDPOINT || !process.env.R2_BUCKET_NAME) {
     throw new Error("R2 environment variables are missing");
@@ -73,6 +77,7 @@ export async function getSignedDownloadUrl(
   const command = new GetObjectCommand({
     Bucket: process.env.R2_BUCKET_NAME,
     Key: key,
+    ...(contentDisposition ? { ResponseContentDisposition: contentDisposition } : {}),
   });
 
   return getSignedUrl(getS3Client(), command, { expiresIn: expiresInSeconds });
@@ -128,6 +133,14 @@ function extractKeyFromR2Url(url: URL): string {
 }
 
 /**
+ * Options for {@link getSignedUrlFromAny}
+ */
+export type SignedUrlOptions = {
+  /** Content-Disposition header value (e.g. `attachment; filename="video.mp4"`) */
+  contentDisposition?: string;
+};
+
+/**
  * Normalize a stored URL-or-key into a fresh accessible URL.
  *
  * Accepts:
@@ -139,6 +152,7 @@ function extractKeyFromR2Url(url: URL): string {
  */
 export async function getSignedUrlFromAny(
   urlOrKey?: string | null,
+  options?: SignedUrlOptions,
 ): Promise<string | null> {
   if (!urlOrKey) return null;
 
@@ -150,7 +164,7 @@ export async function getSignedUrlFromAny(
 
     // Public/signed R2 URLs are converted into fresh signed URLs.
     if (key !== trimmed) {
-      return getSignedDownloadUrl(key);
+      return getSignedDownloadUrl(key, 3600, options?.contentDisposition);
     }
 
     // External (non-R2) URL — return unchanged
@@ -158,5 +172,5 @@ export async function getSignedUrlFromAny(
   }
 
   // Raw key — generate a fresh signed URL
-  return getSignedDownloadUrl(trimmed);
+  return getSignedDownloadUrl(trimmed, 3600, options?.contentDisposition);
 }

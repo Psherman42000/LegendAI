@@ -11,9 +11,9 @@ export function SubtitleEditor() {
 
   return (
     <div className="space-y-6">
-      <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-[1.5fr_1fr]">
         <VideoPreview segments={segments} />
-        <div className="space-y-3">
+        <div className="space-y-3 max-h-[50vh] overflow-y-auto lg:max-h-[calc(100vh-220px)] pr-1">
           {segments.map((segment) => (
             <SubtitleSegment key={segment.id} segment={segment} />
           ))}
