@@ -5,6 +5,13 @@ import { PLANS, calcularPrecoAvulso } from "./plans";
 
 const accessToken = process.env.MP_ACCESS_TOKEN ?? "";
 
+// Log token prefix for debugging (safe — only shows first/last few chars)
+if (accessToken) {
+  console.log(`[mercadopago] Token loaded: ${accessToken.slice(0, 8)}...${accessToken.slice(-4)} (length=${accessToken.length})`);
+} else {
+  console.error("[mercadopago] MP_ACCESS_TOKEN is empty!");
+}
+
 export const mpConfig = new MercadoPagoConfig({
   accessToken,
 });
@@ -19,6 +26,34 @@ export const mp = {
   preApproval: preApprovalClient,
 };
 
+/**
+ * Extract the full MP error, including the HTTP response body if available.
+ * MP SDK errors often have a `.response` with `.status` and `.data`.
+ */
+function extractMpError(err: unknown): { rawMessage: string; rawJson: string } {
+  const rawJson = (() => {
+    if (typeof err === "object" && err !== null) {
+      try {
+        return JSON.stringify(err, (key, value) => {
+          // Avoid circular references and truncate large buffers
+          if (key === "request" || key === "config") return undefined;
+          return value;
+        }, 2);
+      } catch {
+        return String(err);
+      }
+    }
+    return String(err);
+  })();
+
+  const rawMessage = (() => {
+    if (err instanceof Error) return err.message;
+    return rawJson;
+  })();
+
+  return { rawMessage, rawJson };
+}
+
 export async function criarAssinatura(data: {
   userId: string;
   userEmail: string;
@@ -27,25 +62,37 @@ export async function criarAssinatura(data: {
   backUrl: string;
 }): Promise<{ initPoint: string; subscriptionId: string }> {
   const plan = PLANS[data.planId];
-  if (!plan.mpPlanId) {
-    throw new Error(
-      `Plano ${data.planId} não configurado no Mercado Pago. Configure MP_PLAN_${data.planId}_ID no .env`,
-    );
-  }
+  console.log(`[criarAssinatura] planId=${data.planId}, price=${plan.price}, mpPlanId=${plan.mpPlanId}`);
 
+  const amount = plan.price / 100;
   let preapproval: PreApprovalResponse;
   try {
     preapproval = await preApprovalClient.create({
       body: {
-        preapproval_plan_id: plan.mpPlanId,
+        reason: `LegendAI — ${plan.name}`,
         payer_email: data.userEmail,
+        auto_recurring: {
+          frequency: 1,
+          frequency_type: "months",
+          transaction_amount: amount,
+          currency_id: "BRL",
+        },
         back_url: data.backUrl,
         external_reference: `${data.userId}:${data.planId}`,
       },
     });
+    console.log(`[criarAssinatura] MP response id=${preapproval.id}, init_point=${preapproval.init_point}, status=${preapproval.status}`);
   } catch (err) {
+    const { rawMessage, rawJson } = extractMpError(err);
+    console.error("[criarAssinatura] MP error (message):", rawMessage);
+    console.error("[criarAssinatura] MP error (full):", rawJson);
+
+    // Log token diagnostic info (safe — only prefix and length)
+    console.error(`[criarAssinatura] Token prefix used: ${accessToken.slice(0, 8)}... (length=${accessToken.length}, starts with TEST-: ${accessToken.startsWith("TEST-")}, starts with APP_USR-: ${accessToken.startsWith("APP_USR-")})`);
+
+    // Throw the raw error so the frontend can see exactly what MP returned
     throw new Error(
-      `Erro ao criar assinatura no Mercado Pago: ${err instanceof Error ? err.message : String(err)}`,
+      `Erro ao criar assinatura no Mercado Pago: ${rawMessage}\n\n--- Detalhes do erro MP ---\n${rawJson}`,
     );
   }
 
@@ -83,30 +130,39 @@ export async function criarPagamentoAvulso(data: {
 }> {
   const { priceInCentavos } = calcularPrecoAvulso(data.durationSeconds);
   const amount = priceInCentavos / 100;
+  console.log(`[criarPagamentoAvulso] method=${data.method}, amount=${amount}, paymentId=${data.paymentId}`);
 
   if (data.method === "PIX") {
-    const payment = await paymentClient.create({
-      body: {
-        transaction_amount: amount,
-        description: `Legendai — vídeo avulso (${Math.ceil(data.durationSeconds / 60)} min)`,
-        payment_method_id: "pix",
-        payer: {
-          email: data.userEmail,
-          first_name: data.userName.split(" ")[0] ?? data.userName,
+    try {
+      const payment = await paymentClient.create({
+        body: {
+          transaction_amount: amount,
+          description: `Legendai — vídeo avulso (${Math.ceil(data.durationSeconds / 60)} min)`,
+          payment_method_id: "pix",
+          payer: {
+            email: data.userEmail,
+            first_name: data.userName.split(" ")[0] ?? data.userName,
+          },
+          external_reference: data.paymentId,
+          notification_url: data.notificationUrl,
+          date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
         },
-        external_reference: data.paymentId,
-        notification_url: data.notificationUrl,
-        date_of_expiration: new Date(Date.now() + 30 * 60 * 1000).toISOString(),
-      },
-    });
+      });
+      console.log(`[criarPagamentoAvulso] PIX payment id=${payment.id}, status=${payment.status}`);
+      console.log(`[criarPagamentoAvulso] PIX point_of_interaction=`, JSON.stringify(payment.point_of_interaction));
 
-    return {
-      preferenceId: String(payment.id ?? data.paymentId),
-      initPoint: "",
-      pixQrCode: payment.point_of_interaction?.transaction_data?.qr_code_base64 ?? undefined,
-      pixQrCodeText: payment.point_of_interaction?.transaction_data?.qr_code ?? undefined,
-      pixExpiration: payment.date_of_expiration ?? undefined,
-    };
+      return {
+        preferenceId: String(payment.id ?? data.paymentId),
+        initPoint: "",
+        pixQrCode: payment.point_of_interaction?.transaction_data?.qr_code_base64 ?? undefined,
+        pixQrCodeText: payment.point_of_interaction?.transaction_data?.qr_code ?? undefined,
+        pixExpiration: payment.date_of_expiration ?? undefined,
+      };
+    } catch (err) {
+      const errorDetail = extractMpError(err);
+      console.error("[criarPagamentoAvulso] PIX error:", errorDetail);
+      throw new Error(`Erro ao criar PIX no Mercado Pago: ${errorDetail}`);
+    }
   }
 
   const preference = await preferenceClient.create({

@@ -1,13 +1,34 @@
-import { PlanCard } from "./PlanCard";
-import { PLANS } from "@/lib/plans";
+import { PlanCard } from "@/components/plans/PlanCard";
+import type { PlanId } from "@/lib/plans";
 
-export function PricingTable() {
+type PlanItem = {
+  id: PlanId;
+  name: string;
+  price: number;
+  videosPerMonth: number;
+  maxDurationSeconds: number;
+  features: readonly string[];
+  mpPlanId: string | null;
+  highlighted: boolean;
+};
+
+export function PricingTable({
+  plans,
+  currentPlanId,
+}: {
+  plans: PlanItem[];
+  currentPlanId: PlanId;
+}) {
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-      <PlanCard plan="FREE" price={PLANS.FREE.price} features={PLANS.FREE.features} />
-      <PlanCard plan="STARTER" price={PLANS.STARTER.price} features={PLANS.STARTER.features} highlighted />
-      <PlanCard plan="PRO" price={PLANS.PRO.price} features={PLANS.PRO.features} />
-      <PlanCard plan="UNLIMITED" price={PLANS.UNLIMITED.price} features={PLANS.UNLIMITED.features} />
+      {plans.map((plan) => (
+        <PlanCard
+          key={plan.id}
+          plan={plan}
+          isCurrentPlan={plan.id === currentPlanId}
+          highlighted={plan.highlighted && plan.id !== currentPlanId}
+        />
+      ))}
     </div>
   );
 }

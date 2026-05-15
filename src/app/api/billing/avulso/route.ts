@@ -34,34 +34,45 @@ export async function POST(request: Request) {
     },
   });
 
-  const checkout = await criarPagamentoAvulso({
-    userId: session.user.id,
-    userEmail: session.user.email,
-    userName: session.user.name ?? "Usuário",
-    paymentId: payment.id,
-    durationSeconds: body.durationSeconds,
-    method: body.paymentMethod === "PIX" ? "PIX" : "CARD",
-    notificationUrl: `${process.env.PUBLIC_URL ?? "https://legendai.online"}/api/billing/webhook/mercadopago`,
-  });
-
-  await prisma.payment.update({
-    where: { id: payment.id },
-    data: {
-      mpPaymentId: checkout.preferenceId,
-      checkoutUrl: checkout.initPoint || null,
-      pixQrCode: checkout.pixQrCode ?? null,
-      pixQrCodeText: checkout.pixQrCodeText ?? null,
-      pixExpiration: checkout.pixExpiration ? new Date(checkout.pixExpiration) : null,
-    },
-  }).catch(() => undefined);
-
-  return NextResponse.json({
-    ok: true,
-    data: {
+  try {
+    const checkout = await criarPagamentoAvulso({
+      userId: session.user.id,
+      userEmail: session.user.email,
+      userName: session.user.name ?? "Usuário",
       paymentId: payment.id,
-      amount: pricing.priceInCentavos,
-      method: body.paymentMethod,
-      ...checkout,
-    },
-  });
+      durationSeconds: body.durationSeconds,
+      method: body.paymentMethod === "PIX" ? "PIX" : "CARD",
+      notificationUrl: `${process.env.PUBLIC_URL ?? "https://legendai.online"}/api/billing/webhook/mercadopago`,
+    });
+
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        mpPaymentId: checkout.preferenceId,
+        checkoutUrl: checkout.initPoint || null,
+        pixQrCode: checkout.pixQrCode ?? null,
+        pixQrCodeText: checkout.pixQrCodeText ?? null,
+        pixExpiration: checkout.pixExpiration ? new Date(checkout.pixExpiration) : null,
+      },
+    }).catch(() => undefined);
+
+    return NextResponse.json({
+      ok: true,
+      data: {
+        paymentId: payment.id,
+        amount: pricing.priceInCentavos,
+        method: body.paymentMethod,
+        ...checkout,
+      },
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Erro ao criar pagamento";
+    console.error("[avulso] Error creating MP payment:", message);
+    // Update payment to failed status so it doesn't stay pending
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: { status: "FAILED" },
+    }).catch(() => undefined);
+    return NextResponse.json({ ok: false, error: message }, { status: 500 });
+  }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
 const windowMs = 60_000;
-const maxRequests = 10;
+const maxRequests = 100;
 const buckets = new Map<string, { count: number; resetAt: number }>();
 
 // Periodic cleanup of expired rate-limit entries

@@ -30,16 +30,25 @@ export function validateEnv(): void {
   if (!getEnv("MP_ACCESS_TOKEN")) {
     warnings.push("MP_ACCESS_TOKEN not set — subscription checkout will fail");
   } else {
-    // If MP is configured, plan IDs should also be set
-    if (!getEnv("MP_PLAN_STARTER_ID")) {
-      warnings.push("MP_PLAN_STARTER_ID not set — STARTER plan checkout will fail");
+    const mpToken = getEnv("MP_ACCESS_TOKEN")!;
+
+    // Log token diagnostic info at startup
+    console.log(`[env] MP_ACCESS_TOKEN diagnostic:
+  - prefix: ${mpToken.slice(0, 8)}...
+  - length: ${mpToken.length}
+  - starts with TEST-: ${mpToken.startsWith("TEST-")}
+  - starts with APP_USR-: ${mpToken.startsWith("APP_USR-")}
+  - NODE_ENV: ${process.env.NODE_ENV ?? "not set"}`);
+
+    // Detect sandbox/test tokens in production — they cause "Both payer and collector must be real or test users"
+    if (process.env.NODE_ENV === "production" && mpToken.startsWith("TEST-")) {
+      errors.push(
+        "MP_ACCESS_TOKEN is a sandbox token (starts with TEST-). " +
+        "Real users cannot pay with sandbox credentials. " +
+        "Replace with a production token from the Mercado Pago dashboard (Credenciales → Producción)."
+      );
     }
-    if (!getEnv("MP_PLAN_PRO_ID")) {
-      warnings.push("MP_PLAN_PRO_ID not set — PRO plan checkout will fail");
-    }
-    if (!getEnv("MP_PLAN_UNLIMITED_ID")) {
-      warnings.push("MP_PLAN_UNLIMITED_ID not set — UNLIMITED plan checkout will fail");
-    }
+
     if (!getEnv("MP_WEBHOOK_SECRET")) {
       if (process.env.NODE_ENV === "production") {
         errors.push("MP_WEBHOOK_SECRET is required in production when MP is configured");

@@ -21,7 +21,7 @@ export const PLANS = {
   STARTER: {
     id: "STARTER",
     name: "Starter",
-    price: 1000,
+    price: 50,
     videosPerMonth: 30,
     maxDurationSeconds: 1800,
     highlighted: false,
@@ -38,7 +38,7 @@ export const PLANS = {
   PRO: {
     id: "PRO",
     name: "Pro",
-    price: 2500,
+    price: 50,
     videosPerMonth: 100,
     maxDurationSeconds: 7200,
     highlighted: true,
@@ -56,7 +56,7 @@ export const PLANS = {
   UNLIMITED: {
     id: "UNLIMITED",
     name: "Ilimitado",
-    price: 5000,
+    price: 50,
     videosPerMonth: 999_999,
     maxDurationSeconds: 14_400,
     highlighted: false,
@@ -71,8 +71,8 @@ export const PLANS = {
   },
 } as const;
 
-export const AVULSO_PRICE_PER_SECOND = 1.5;
-export const AVULSO_MINIMUM_PRICE = 200;
+export const AVULSO_PRICE_PER_SECOND = 0;
+export const AVULSO_MINIMUM_PRICE = 50; // R$ 0,50 flat rate por vídeo
 
 export function calcularPrecoAvulso(durationSeconds: number): {
   seconds: number;
